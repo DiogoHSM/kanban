@@ -44,6 +44,10 @@ export class UIRenderer {
     const headers = Utils.createElement('div', 'column-headers');
     const state = this.stateManager.getState();
     
+    // IMPORTANTE: Criar uma única linha de tabela
+    const headerRow = Utils.createElement('div');
+    headerRow.style.display = 'table-row';
+    
     state.columns.forEach((column, index) => {
       const header = Utils.createElement('div', 'column-header');
       
@@ -55,9 +59,10 @@ export class UIRenderer {
       total.textContent = '⏱ ' + Utils.formatMin(totalMinutes);
       
       header.append(title, total);
-      headers.appendChild(header);
+      headerRow.appendChild(header); // Adicionar à ROW, não diretamente aos headers
     });
     
+    headers.appendChild(headerRow); // Adicionar a row aos headers
     return headers;
   }
 

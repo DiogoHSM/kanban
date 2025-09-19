@@ -52,7 +52,7 @@ header{position:sticky;top:0;z-index:50;background:var(--panel);box-shadow:var(-
 .board{max-width:1400px;margin:16px auto;padding:0 16px}
 .board-content{overflow-x:auto;padding-bottom:2px}
 
-/* CABEÇALHO DAS COLUNAS - Usando tabela para garantir alinhamento */
+/* CABEÇALHO DAS COLUNAS - Usando tabela com row */
 .column-headers{
   display:table;
   width:100%;
@@ -63,13 +63,17 @@ header{position:sticky;top:0;z-index:50;background:var(--panel);box-shadow:var(-
   background:var(--bg);
 }
 
+/* Row da tabela */
+.column-headers > div {
+  display:table-row;
+}
+
 .column-header{
   display:table-cell;
   text-align:center;
   padding:4px 8px;
   border-right:1px solid var(--border);
   vertical-align:middle;
-  width:252px; /* 240px + 12px gap */
 }
 
 .column-header:first-child{
