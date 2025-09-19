@@ -26,6 +26,10 @@ export class StateManager {
         { name: 'bug', color: '#ffb300' }
       ],
       toolDict: ['JavaScript', 'Python'],
+      assigneeDict: [
+        { name: 'João Silva', hourlyRate: 50.00 },
+        { name: 'Maria Santos', hourlyRate: 65.00 }
+      ],
       filter: { tags: [], tools: [], laneIds: [], search: '' }
     };
   }
@@ -71,6 +75,7 @@ export class StateManager {
     state.cards = state.cards || [];
     state.tagDict = state.tagDict || [];
     state.toolDict = state.toolDict || [];
+    state.assigneeDict = state.assigneeDict || [];
     state.filter = state.filter || { tags: [], tools: [], laneIds: [], search: '' };
     return state;
   }
@@ -98,6 +103,10 @@ export class StateManager {
 
   getToolDict() {
     return this.state.toolDict;
+  }
+
+  getAssigneeDict() {
+    return this.state.assigneeDict;
   }
 
   getFilter() {
@@ -246,6 +255,24 @@ export class StateManager {
   updateToolDict(tools) {
     this.state.toolDict = Array.from(new Set(tools));
     this.notifyStateChange();
+  }
+
+  // Métodos para Assignees
+  updateAssigneeDict(assignees) {
+    this.state.assigneeDict = assignees;
+    this.notifyStateChange();
+  }
+
+  getAssigneeByName(name) {
+    return this.state.assigneeDict.find(assignee => assignee.name === name);
+  }
+
+  calculateCardCost(assigneeName, duration) {
+    const assignee = this.getAssigneeByName(assigneeName);
+    if (!assignee || !duration) return 0;
+    
+    const durationInHours = Utils.parseDurationToMin(duration) / 60;
+    return durationInHours * assignee.hourlyRate;
   }
 
   // Métodos para Filtros

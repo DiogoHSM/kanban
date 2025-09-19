@@ -136,7 +136,17 @@ header{position:sticky;top:0;z-index:50;background:var(--panel);box-shadow:var(-
 .lane-sum{color:var(--muted);font-size:12px}
 
 .columns{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(240px,1fr);gap:12px}
-.column{background:var(--panel);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);display:flex;flex-direction:column;min-height:140px}
+.column{background:var(--panel);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);display:flex;flex-direction:column;min-height:140px;position:relative}
+.column:not(:last-child)::after{
+  content:'';
+  position:absolute;
+  right:-7px;
+  top:10px;
+  bottom:10px;
+  width:1px;
+  background:var(--border);
+  opacity:0.5;
+}
 .col-head{display:flex;align-items:center;gap:8px;padding:10px;border-bottom:1px solid var(--border)}
 .col-title[contenteditable]{flex:1;outline:none;border-bottom:1px dashed transparent}
 .col-title[contenteditable]:focus{border-color:var(--focus)}

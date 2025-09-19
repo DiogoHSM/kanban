@@ -110,6 +110,9 @@ class KanbanApp {
         case 'tools':
           this.modalManager.openToolsManager(this.stateManager);
           break;
+        case 'assignees':
+          this.modalManager.openAssigneesManager(this.stateManager);
+          break;
         case 'export':
           this.importExportManager.exportJSON();
           break;

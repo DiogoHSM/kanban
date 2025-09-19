@@ -58,7 +58,14 @@ export class ModalManager {
             </div>
             <div class="row">
               <label for="c_assignee">Responsável</label>
-              <input id="c_assignee" value="${Utils.escapeHtml(card.assignee)}" />
+              <select id="c_assignee">
+                <option value="">Selecione um responsável</option>
+                ${state.assigneeDict.map(assignee => 
+                  `<option value="${Utils.escapeHtml(assignee.name)}" ${assignee.name === card.assignee ? 'selected' : ''}>
+                    ${Utils.escapeHtml(assignee.name)} (R$ ${assignee.hourlyRate.toFixed(2)}/h)
+                  </option>`
+                ).join('')}
+              </select>
             </div>
             <div class="row">
               <label for="c_duration">Duração</label>
@@ -66,8 +73,9 @@ export class ModalManager {
                      placeholder="Ex.: 2h 30m, 1.5h, 90m, 1:30" />
             </div>
             <div class="row">
-              <label for="c_cost">Custo</label>
-              <input id="c_cost" value="${Utils.escapeHtml(card.cost)}" />
+              <label for="c_cost">Custo Calculado</label>
+              <input id="c_cost" value="${Utils.escapeHtml(card.cost)}" readonly 
+                     style="background:var(--chip-bg);cursor:not-allowed" />
             </div>
             <div class="row">
               <label>Ferramentas/Tecnologias</label>
@@ -118,6 +126,7 @@ export class ModalManager {
 
     this.setupCardModalPickers(modal, card, state);
     this.setupCardModalEvents(modal, card, stateManager);
+    this.setupCostCalculation(modal, stateManager);
     
     return modal;
   }
@@ -155,6 +164,30 @@ export class ModalManager {
     });
   }
 
+  setupCostCalculation(modal, stateManager) {
+    const assigneeSelect = modal.querySelector('#c_assignee');
+    const durationInput = modal.querySelector('#c_duration');
+    const costInput = modal.querySelector('#c_cost');
+
+    const calculateCost = () => {
+      const assigneeName = assigneeSelect.value;
+      const duration = durationInput.value;
+      
+      if (assigneeName && duration) {
+        const cost = stateManager.calculateCardCost(assigneeName, duration);
+        costInput.value = `R$ ${cost.toFixed(2)}`;
+      } else {
+        costInput.value = '';
+      }
+    };
+
+    assigneeSelect.addEventListener('change', calculateCost);
+    durationInput.addEventListener('input', calculateCost);
+    
+    // Calcular custo inicial se já houver dados
+    calculateCost();
+  }
+
   setupCardModalEvents(modal, card, stateManager) {
     const form = modal.querySelector('#cardForm');
     
@@ -176,11 +209,14 @@ export class ModalManager {
   }
 
   getCardFormData(form, modal) {
+    const assigneeName = form.querySelector('#c_assignee').value;
+    const duration = form.querySelector('#c_duration').value.trim();
+    
     return {
       title: form.querySelector('#c_title').value.trim() || 'Sem título',
-      assignee: form.querySelector('#c_assignee').value.trim(),
-      duration: form.querySelector('#c_duration').value.trim(),
-      cost: form.querySelector('#c_cost').value.trim(),
+      assignee: assigneeName,
+      duration: duration,
+      cost: form.querySelector('#c_cost').value, // Usar valor calculado
       color: form.querySelector('#c_color').value,
       laneId: form.querySelector('#c_lane').value,
       columnId: form.querySelector('#c_col').value,
@@ -362,6 +398,76 @@ export class ModalManager {
       }
     });
     return tags;
+  }
+
+  openAssigneesManager(stateManager) {
+    const modal = this.createAssigneesManagerModal(stateManager);
+    this.openModal(modal);
+  }
+
+  createAssigneesManagerModal(stateManager) {
+    const modal = Utils.createElement('div', 'modal');
+    const assigneeDict = stateManager.getAssigneeDict();
+    
+    modal.innerHTML = `
+      <header><div class="modal-title">Gerenciar Responsáveis</div></header>
+      <div class="modal-body">
+        <div id="assigneeRows"></div>
+        <button class="btn success" id="add">+ Adicionar Responsável</button>
+      </div>
+      <footer>
+        <button class="btn" id="close">Fechar</button>
+        <button class="btn success" id="save">Salvar</button>
+      </footer>
+    `;
+
+    const rowsContainer = modal.querySelector('#assigneeRows');
+    
+    // Adicionar responsáveis existentes
+    assigneeDict.forEach(assignee => this.addAssigneeRow(rowsContainer, assignee));
+    
+    // Event listeners
+    modal.querySelector('#add').addEventListener('click', () => {
+      this.addAssigneeRow(rowsContainer);
+    });
+
+    modal.querySelector('#close').addEventListener('click', () => {
+      this.closeModal();
+    });
+
+    modal.querySelector('#save').addEventListener('click', () => {
+      const assignees = this.collectAssigneesFromRows(rowsContainer);
+      stateManager.updateAssigneeDict(assignees);
+      this.closeModal();
+    });
+
+    return modal;
+  }
+
+  addAssigneeRow(container, assignee = null) {
+    const row = Utils.createElement('div', 'row');
+    row.innerHTML = `
+      <div style="display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:center">
+        <input class="a-name" placeholder="Nome completo" value="${assignee ? Utils.escapeHtml(assignee.name) : ''}" />
+        <input class="a-rate" type="number" step="0.01" min="0" placeholder="R$/hora" value="${assignee ? assignee.hourlyRate : ''}" />
+        <button class="btn small danger a-del">X</button>
+      </div>
+    `;
+    
+    row.querySelector('.a-del').addEventListener('click', () => row.remove());
+    container.appendChild(row);
+  }
+
+  collectAssigneesFromRows(container) {
+    const assignees = [];
+    Utils.qsa('.row', container).forEach(row => {
+      const name = row.querySelector('.a-name').value.trim();
+      const hourlyRate = parseFloat(row.querySelector('.a-rate').value) || 0;
+      if (name && hourlyRate > 0) {
+        assignees.push({ name, hourlyRate });
+      }
+    });
+    return assignees;
   }
 
   openToolsManager(stateManager) {
