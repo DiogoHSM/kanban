@@ -13,9 +13,35 @@ export class UIRenderer {
     this.boardElement.innerHTML = '';
     
     const state = this.stateManager.getState();
+    
+    // Renderizar cabeçalho das colunas
+    this.boardElement.appendChild(this.renderColumnHeaders());
+    
+    // Renderizar lanes
     state.lanes.forEach(lane => {
       this.boardElement.appendChild(this.renderLane(lane));
     });
+  }
+
+  renderColumnHeaders() {
+    const headers = Utils.createElement('div', 'column-headers');
+    const state = this.stateManager.getState();
+    
+    state.columns.forEach(column => {
+      const header = Utils.createElement('div', 'column-header');
+      
+      const title = Utils.createElement('div', 'column-header-title');
+      title.textContent = column.title;
+      
+      const total = Utils.createElement('div', 'column-header-total');
+      const totalMinutes = this.calculateColumnTotalMinutes(column);
+      total.textContent = '⏱ ' + Utils.formatMin(totalMinutes);
+      
+      header.append(title, total);
+      headers.appendChild(header);
+    });
+    
+    return headers;
   }
 
   renderLane(lane) {
@@ -91,7 +117,7 @@ export class UIRenderer {
     });
 
     const sum = Utils.createElement('div', 'col-sum');
-    sum.textContent = '⏱ ' + Utils.formatMin(this.calculateColumnTotalMinutes(column, lane));
+    sum.textContent = '⏱ ' + Utils.formatMin(this.calculateColumnTotalMinutesInLane(column, lane));
 
     const actions = this.createColumnActions(column, lane);
 
@@ -264,7 +290,22 @@ export class UIRenderer {
     }, 0);
   }
 
-  calculateColumnTotalMinutes(column, lane) {
+  calculateColumnTotalMinutes(column, lane = null) {
+    let cards;
+    if (lane) {
+      // Total para uma coluna em uma lane específica
+      cards = this.getFilteredCards(column.id, lane.id);
+    } else {
+      // Total para uma coluna em todas as lanes
+      cards = this.getFilteredCards(column.id, null);
+    }
+    
+    return cards.reduce((acc, card) => {
+      return acc + Utils.parseDurationToMin(card.duration);
+    }, 0);
+  }
+
+  calculateColumnTotalMinutesInLane(column, lane) {
     const cards = this.getFilteredCards(column.id, lane.id);
     return cards.reduce((acc, card) => {
       return acc + Utils.parseDurationToMin(card.duration);
@@ -275,11 +316,13 @@ export class UIRenderer {
     const state = this.stateManager.getState();
     let cards = state.cards;
 
-    // Filtrar por lane e column se especificados
-    if (laneId) {
+    // Filtrar por lane se especificado
+    if (laneId !== null) {
       cards = cards.filter(card => card.laneId === laneId);
     }
-    if (columnId) {
+    
+    // Filtrar por column se especificado
+    if (columnId !== null) {
       cards = cards.filter(card => card.columnId === columnId);
     }
 
