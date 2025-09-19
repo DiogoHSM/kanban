@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kanban Board</title>
+  <style>
+    :root{
+      --bg: #0f1115;
+      --panel: #171a21;
+      --muted: #8b95a7;
+      --text: #e6e9ef;
+      --accent: #7c9fff;
+      --card: #1d222b;
+      --border: #2a2f3a;
+      --shadow: 0 10px 30px rgba(0,0,0,.25);
+      --chip-bg: #252b36;
+      --danger: #ff4d4d;
+      --success: #28a745;
+      --warning: #f0ad4e;
+      --focus: #b4ccff;
+      --dashed: 4px dashed var(--border);
+    }
+    html[data-theme="light"]{
+      --bg: #f3f5f8;
+      --panel: #ffffff;
+      --muted: #5b6577;
+      --text: #12151a;
+      --accent: #3451ff;
+      --card: #ffffff;
+      --border: #e2e6ef;
+      --shadow: 0 6px 18px rgba(0,0,0,.08);
+      --chip-bg: #eef2f9;
+      --danger: #d33;
+      --success: #2e7d32;
+      --warning: #b57614;
+      --focus: #1b3dff;
+    }
+
+    *{box-sizing: border-box}
+    body{margin:0;background:var(--bg);color:var(--text);font:14px/1.45 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial}
+    
+    /* Header */
+    header{position:sticky;top:0;z-index:50;background:var(--panel);box-shadow:var(--shadow);border-bottom:1px solid var(--border)}
+    .hdr{display:grid;grid-template-columns: 180px 1fr auto;gap:12px;align-items:center;padding:12px 16px;max-width:1400px;margin:0 auto}
+    .title{font-weight:700;font-size:18px}
+    .search-wrap{display:flex;gap:8px;align-items:center}
+    .search{width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--border);background:transparent;color:var(--text)}
+    .btn{padding:8px 12px;border-radius:10px;border:1px solid var(--border);background:transparent;color:var(--text);cursor:pointer}
+    .btn:focus{outline:2px solid var(--focus);outline-offset:1px}
+    .btn.icon{display:inline-flex;align-items:center;gap:6px}
+    .btn.small{padding:6px 8px;font-size:12px}
+    .btn.success{background:var(--success);color:#fff;border-color:transparent}
+    .btn.danger{background:var(--danger);color:#fff;border-color:transparent}
+
+    /* Board */
+    .board{max-width:1400px;margin:16px auto;padding:0 16px}
+    .lane{margin-bottom:24px}
+    .lane-head{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+    .lane-title[contenteditable]{outline: none;border-bottom:1px dashed transparent}
+    .lane-title[contenteditable]:focus{border-color:var(--focus)}
+    .lane-actions{display:flex;gap:8px;margin-left:auto}
+    .lane-sum{color:var(--muted);font-size:12px}
+
+    .columns{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(240px,1fr);gap:12px;overflow-x:auto;padding-bottom:2px}
+    .column{background:var(--panel);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);display:flex;flex-direction:column;min-height:140px}
+    .col-head{display:flex;align-items:center;gap:8px;padding:10px;border-bottom:1px solid var(--border)}
+    .col-title[contenteditable]{flex:1;outline:none;border-bottom:1px dashed transparent}
+    .col-title[contenteditable]:focus{border-color:var(--focus)}
+    .col-actions{display:flex;gap:6px}
+    .col-sum{color:var(--muted);font-size:12px}
+
+    .col-body{padding:10px;display:flex;flex-direction:column;gap:10px;min-height:120px}
+    .col-body.empty{border: var(--dashed);border-radius:12px;display:flex;align-items:center;justify-content:center;color:var(--muted);padding:18px}
+
+    .card{background:var(--card);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);cursor:grab}
+    .card:active{cursor:grabbing}
+    .card-top{height:6px;border-top-left-radius:12px;border-top-right-radius:12px}
+    .card-body{padding:10px}
+    .card-title{font-weight:600;margin:0 0 6px}
+    .chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px}
+    .chip{background:var(--chip-bg);border:1px solid var(--border);border-radius:999px;padding:4px 8px;font-size:12px;color:var(--muted)}
+    .tag-dots{display:flex;gap:4px;margin-top:4px}
+    .dot{width:8px;height:8px;border-radius:50%;border:1px solid #0003}
+
+    /* Modal */
+    .overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;z-index:100}
+    .overlay.open{display:flex}
+    .modal{background:var(--panel);border:1px solid var(--border);box-shadow:var(--shadow);border-radius:16px;max-width:720px;width:min(calc(100% - 24px), 720px)}
+    .modal header{position:relative;background:transparent;border:0;box-shadow:none}
+    .modal-title{padding:14px 16px;font-weight:700}
+    .modal-body{padding:0 16px 16px;max-height:70vh;overflow:auto}
+    .modal-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .modal .row{display:flex;flex-direction:column;gap:6px}
+    label{color:var(--muted);font-size:12px}
+    input,select,textarea{padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text)}
+    textarea{min-height:90px;resize:vertical}
+    .modal footer{display:flex;justify-content:flex-end;gap:8px;padding:12px 16px;border-top:1px solid var(--border)}
+
+    /* Menu panel */
+    .menu-panel{position:fixed;right:16px;top:64px;background:var(--panel);border:1px solid var(--border);box-shadow:var(--shadow);border-radius:12px;display:none;z-index:80;min-width:260px}
+    .menu-panel.open{display:block}
+    .menu-list{list-style:none;margin:0;padding:8px}
+    .menu-item{display:flex;align-items:center;gap:8px;width:100%;text-align:left}
+    .menu-section{padding:6px 8px;color:var(--muted);font-size:12px}
+    .theme-row{display:flex;gap:8px;padding:0 8px 8px}
+    .theme-row .btn{flex:1}
+
+    /* Token boxes */
+    .tokens{display:flex;gap:8px;flex-wrap:wrap}
+    .token{border:1px solid var(--border);background:var(--chip-bg);border-radius:999px;padding:6px 10px;cursor:pointer}
+    .token.active{outline:2px solid var(--accent)}
+
+    /* Drag feedback */
+    .drop-target{outline:2px dashed var(--accent);outline-offset:-6px}
+
+    /* Responsive */
+    @media (max-width: 800px){
+      .hdr{grid-template-columns: 1fr}
+      .title{order:1}
+      .search-wrap{order:2}
+      .actions{order:3;display:flex;flex-wrap:wrap;gap:8px}
+    }
+  </style>
+</head>
+<body>
+  <header aria-label="Barra superior">
+    <div class="hdr">
+      <div class="title">Kanban Board</div>
+      <div class="search-wrap">
+        <input id="search" class="search" type="search" placeholder="Buscar por nome ou responsável" aria-label="Buscar" />
+        <button id="btnFilters" class="btn" aria-haspopup="dialog">🔎 Filtros</button>
+      </div>
+      <div class="actions" style="display:flex;gap:8px;align-items:center;justify-self:end">
+        <button id="btnNewLane" class="btn success">+ Lane</button>
+        <button id="btnNewColumn" class="btn success">+ Coluna</button>
+        <button id="btnNewCard" class="btn success">+ Card</button>
+        <button id="btnMenu" class="btn icon">☰ Menu</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="board" id="board" aria-live="polite"></main>
+
+  <!-- Menu Panel -->
+  <div id="menuPanel" class="menu-panel" role="menu">
+    <div class="menu-section">Tema</div>
+    <div class="theme-row">
+      <button class="btn" id="btnThemeLight" title="Tema claro" aria-label="Tema claro">🌞 Light</button>
+      <button class="btn" id="btnThemeDark" title="Tema escuro" aria-label="Tema escuro">🌙 Dark</button>
+    </div>
+    <ul class="menu-list">
+      <li><button class="btn menu-item" data-menu="tags">🏷️ Gerenciar Tags</button></li>
+      <li><button class="btn menu-item" data-menu="tools">🛠️ Gerenciar Tecnologias</button></li>
+      <li><button class="btn menu-item" data-menu="export">📤 Exportar JSON</button></li>
+      <li><button class="btn menu-item" data-menu="import">📥 Importar JSON</button></li>
+      <li><button class="btn menu-item" data-menu="clear">🧹 Limpar Quadro</button></li>
+    </ul>
+  </div>
+
+  <!-- Generic Overlay for Modals -->
+  <div id="overlay" class="overlay" aria-modal="true" role="dialog"></div>
+
+  <input id="fileInput" type="file" accept="application/json" style="display:none" />
+
+  <script>
+    // ===== VERSÃO UNIFICADA (SEM MÓDULOS) =====
+    
+    // Utilities
+    const uid = () => ((typeof crypto !== 'undefined') && crypto.randomUUID ? crypto.randomUUID() : 'id-' + Math.random().toString(36).slice(2));
+    const qs = (s, el=document) => el.querySelector(s);
+    const qsa = (s, el=document) => Array.from(el.querySelectorAll(s));
+
+    // Duration parsing/formatting (1 dia = 8h, 1 semana = 5 dias úteis)
+    function parseDurationToMin(text){
+      if(!text) return 0;
+      let s = String(text).trim().toLowerCase().replace(/,/g,'.');
+      // pattern "H:M" -> hours+minutes
+      const hm = s.match(/^(\d{1,3}):(\d{1,2})$/);
+      if(hm){ const h=+hm[1], m=+hm[2]; return h*60+m; }
+      // tokens like 1.5h 30m 2d 1w
+      let total = 0; let matched=false;
+      s.replace(/(\d+(?:\.\d+)?)\s*(w|sem|semanas?|d|dias?|day|h|hr|hrs|horas?|m|min|mins|minutos?)/g, (_m, num, unit)=>{
+        matched=true; const n=parseFloat(num);
+        if(/w|sem|semanas?/.test(unit)) total += n*5*8*60; // semana = 5 dias úteis de 8h
+        else if(/d|dias?|day/.test(unit)) total += n*8*60; // dia = 8h
+        else if(/h|hr|hrs|horas?/.test(unit)) total += n*60;
+        else total += n; // minutos
+        return '';
+      });
+      if(matched) return Math.round(total);
+      // plain number -> hours
+      const num = parseFloat(s);
+      if(!isNaN(num)) return Math.round(num*60);
+      return 0;
+    }
+
+    function formatMin(total){
+      total = Math.max(0, Math.round(total));
+      const MIN_PER_DAY = 8*60;
+      const d = Math.floor(total / MIN_PER_DAY);
+      total %= MIN_PER_DAY;
+      const h = Math.floor(total / 60);
+      const m = total % 60;
+      let out=[]; if(d) out.push(d+"d"); if(h) out.push(h+"h"); if(m || out.length===0) out.push(m+"m");
+      return out.join(' ');
+    }
+
+    function escapeHtml(str){
+      return (str ?? '').toString().replace(/[&<>"]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
+    }
+
+    // ===== State Management =====
+    const defaultState = () => ({
+      columns: [ { id: uid(), title: 'Backlog' }, { id: uid(), title: 'Doing' }, { id: uid(), title: 'Done' } ],
+      lanes: [ { id: uid(), title: 'Geral' } ],
+      cards: [],
+      tagDict: [ { name: 'prio-alta', color: '#ff5252' }, { name: 'bug', color: '#ffb300' } ],
+      toolDict: [ 'JavaScript', 'Python' ],
+      filter: { tags: [], tools: [], laneIds: [], search: '' }
+    });
+
+    const STORAGE_KEY = 'kanban-state-v2';
+    const THEME_KEY = 'kanban-theme';
+
+    let state = loadState();
+    applyTheme(loadTheme());
+
+    function saveState(){
+      try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+      catch(e){ console.error('Erro ao salvar', e); }
+    }
+
+    function loadState(){
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if(!raw){ const s = defaultState(); localStorage.setItem(STORAGE_KEY, JSON.stringify(s)); return s; }
+      try{ return migrate(JSON.parse(raw)); } catch{ return defaultState(); }
+    }
+
+    function migrate(s){
+      s.columns = s.columns || [];
+      s.lanes = s.lanes || [ { id: uid(), title: 'Geral' } ];
+      s.cards = s.cards || [];
+      s.tagDict = s.tagDict || [];
+      s.toolDict = s.toolDict || [];
+      s.filter = s.filter || { tags: [], tools: [], laneIds: [], search: '' };
+      return s;
+    }
+
+    function loadTheme(){ return localStorage.getItem(THEME_KEY) || 'dark'; }
+    function applyTheme(theme){ document.documentElement.setAttribute('data-theme', theme); localStorage.setItem(THEME_KEY, theme); }
+
+    // ===== Rendering =====
+    function renderBoard(){
+      const board = qs('#board');
+      board.innerHTML = '';
+      state.lanes.forEach(lane => {
+        board.appendChild(renderLane(lane));
+      });
+    }
+
+    function laneTotalMin(lane){
+      return state.cards.filter(c=>c.laneId===lane.id && passFilters(c, state.filter)).reduce((acc,c)=>acc+parseDurationToMin(c.duration),0);
+    }
+
+    function columnTotalMinInLane(col, lane){
+      return state.cards.filter(c=>c.laneId===lane.id && c.columnId===col.id && passFilters(c, state.filter)).reduce((acc,c)=>acc+parseDurationToMin(c.duration),0);
+    }
+
+    function renderLane(lane){
+      const wrap = document.createElement('section');
+      wrap.className = 'lane';
+      wrap.dataset.laneId = lane.id;
+
+      const head = document.createElement('div');
+      head.className = 'lane-head';
+
+      const title = document.createElement('div');
+      title.className = 'lane-title';
+      title.contentEditable = 'true';
+      title.textContent = lane.title;
+      title.setAttribute('role','textbox');
+      title.setAttribute('aria-label','Título da swimlane');
+      title.addEventListener('blur', () => { lane.title = title.textContent.trim() || 'Sem título'; saveState(); renderBoard(); });
+      title.addEventListener('keydown', e => { if(e.key==='Enter'){ e.preventDefault(); title.blur(); }});
+
+      const sum = document.createElement('div');
+      sum.className = 'lane-sum';
+      sum.textContent = '⏱ ' + formatMin(laneTotalMin(lane));
+
+      const actions = document.createElement('div');
+      actions.className = 'lane-actions';
+      const btnAddCard = button('+ Card', () => createCard({ laneId: lane.id }), 'small', 'success');
+      const btnDelLane = button('X', () => deleteLane(lane.id, true), 'small', 'danger');
+      actions.append(btnAddCard, btnDelLane);
+
+      head.append(title, sum, actions);
+
+      const cols = document.createElement('div');
+      cols.className = 'columns';
+
+      state.columns.forEach(col => {
+        cols.appendChild(renderColumn(col, lane));
+      });
+
+      wrap.append(head, cols);
+      return wrap;
+    }
+
+    function renderColumn(col, lane){
+      const colEl = document.createElement('article');
+      colEl.className = 'column';
+      colEl.dataset.columnId = col.id;
+
+      const head = document.createElement('div');
+      head.className = 'col-head';
+
+      const title = document.createElement('div');
+      title.className = 'col-title';
+      title.contentEditable = 'true';
+      title.textContent = col.title;
+      title.setAttribute('role','textbox');
+      title.setAttribute('aria-label','Título da coluna');
+      title.addEventListener('blur', () => { col.title = title.textContent.trim() || 'Sem título'; saveState(); renderBoard(); });
+      title.addEventListener('keydown', e => { if(e.key==='Enter'){ e.preventDefault(); title.blur(); }});
+
+      const sum = document.createElement('div');
+      sum.className = 'col-sum';
+      sum.textContent = '⏱ ' + formatMin(columnTotalMinInLane(col, lane));
+
+      const actions = document.createElement('div');
+      actions.className = 'col-actions';
+      actions.append(
+        button('+ Card', () => createCard({ laneId: lane.id, columnId: col.id }), 'small', 'success'),
+        button('X', () => deleteColumn(col.id, true), 'small', 'danger')
+      );
+
+      head.append(title, sum, actions);
+
+      const body = document.createElement('div');
+      body.className = 'col-body';
+      body.dataset.dropTarget = 'true';
+      body.addEventListener('dragover', e => { e.preventDefault(); body.classList.add('drop-target'); });
+      body.addEventListener('dragleave', () => body.classList.remove('drop-target'));
+      body.addEventListener('drop', e => {
+        e.preventDefault(); body.classList.remove('drop-target');
+        const cardId = e.dataTransfer.getData('text/card-id');
+        if(!cardId) return;
+        moveCard(cardId, { laneId: lane.id, columnId: col.id });
+      });
+
+      const cards = state.cards.filter(c => c.laneId===lane.id && c.columnId===col.id)
+        .filter(c => passFilters(c, state.filter));
+
+      if(cards.length===0){
+        const empty = document.createElement('div');
+        empty.className = 'col-body empty';
+        empty.textContent = 'Arraste cards ou clique em + Card';
+        body.appendChild(empty);
+      } else {
+        cards.forEach(card => body.appendChild(renderCard(card)));
+      }
+
+      colEl.append(head, body);
+      return colEl;
+    }
+
+    function renderCard(card){
+      const el = document.createElement('div');
+      el.className = 'card';
+      el.draggable = true;
+      el.addEventListener('dragstart', e => { e.dataTransfer.setData('text/card-id', card.id); });
+      el.addEventListener('click', () => openCardModal(card));
+
+      const top = document.createElement('div');
+      top.className = 'card-top';
+      top.style.background = card.color || '#7c9fff';
+
+      const body = document.createElement('div');
+      body.className = 'card-body';
+
+      const title = document.createElement('div');
+      title.className = 'card-title';
+      title.textContent = card.title || 'Sem título';
+
+      const chips = document.createElement('div');
+      chips.className = 'chips';
+      if(card.assignee) chips.appendChild(chip('👤 '+card.assignee));
+      if(card.duration) chips.appendChild(chip('⏱ '+card.duration));
+
+      const dots = document.createElement('div');
+      dots.className = 'tag-dots';
+      ;(card.tags||[]).forEach(t => {
+        const color = (state.tagDict.find(x=>x.name===t)||{}).color || '#888';
+        const d = document.createElement('span');
+        d.className = 'dot';
+        d.title = t;
+        d.style.background = color;
+        dots.appendChild(d);
+      });
+
+      body.append(title, chips, dots);
+      el.append(top, body);
+      return el;
+    }
+
+    // ===== Components helpers =====
+    function chip(text){ const c=document.createElement('span'); c.className='chip'; c.textContent=text; return c; }
+    function button(text, onclick, size, color){ const b=document.createElement('button'); b.className='btn '+(size==='small'?'small ':'')+(color?color:''); b.textContent=text; b.addEventListener('click', onclick); return b; }
+
+    // ===== Filters =====
+    function passFilters(card, f){
+      if(f.search){
+        const s = f.search.toLowerCase();
+        const hit = (card.title||'').toLowerCase().includes(s) || (card.assignee||'').toLowerCase().includes(s);
+        if(!hit) return false;
+      }
+      if(f.laneIds && f.laneIds.length>0 && !f.laneIds.includes(card.laneId)) return false;
+      if(f.tags && f.tags.length>0){
+        if(!f.tags.every(t => (card.tags||[]).includes(t))) return false;
+      }
+      if(f.tools && f.tools.length>0){
+        if(!f.tools.every(t => (card.tools||[]).includes(t))) return false;
+      }
+      return true;
+    }
+
+    // ===== Actions =====
+    function createLane(){
+      state.lanes.push({ id: uid(), title: 'Nova lane' });
+      saveState(); renderBoard();
+    }
+
+    function deleteLane(laneId, ask){
+      if(ask && !confirm('Excluir esta lane? Os cards serão movidos para a primeira lane.')) return;
+      if(state.lanes.length===1){ alert('Não é possível excluir a última lane.'); return; }
+      const idx = state.lanes.findIndex(l=>l.id===laneId);
+      if(idx<0) return;
+      const firstLaneId = state.lanes.find(l=>l.id!==laneId).id;
+      state.cards.forEach(c => { if(c.laneId===laneId) c.laneId = firstLaneId; });
+      state.lanes.splice(idx,1);
+      state.filter.laneIds = state.filter.laneIds.filter(id=>id!==laneId);
+      saveState(); renderBoard();
+    }
+
+    function createColumn(){
+      state.columns.push({ id: uid(), title: 'Nova coluna' });
+      saveState(); renderBoard();
+    }
+
+    function deleteColumn(columnId, ask){
+      if(ask && !confirm('Excluir esta coluna? Todos os cards desta coluna serão removidos.')) return;
+      const ci = state.columns.findIndex(c=>c.id===columnId);
+      if(ci<0) return;
+      state.cards = state.cards.filter(c => c.columnId !== columnId);
+      state.columns.splice(ci,1);
+      saveState(); renderBoard();
+    }
+
+    function createCard({ laneId, columnId }={}){
+      const card = {
+        id: uid(),
+        title: 'Novo card',
+        assignee: '',
+        duration: '',
+        cost: '',
+        tools: [],
+        tags: [],
+        color: '#7c9fff',
+        desc: '',
+        laneId: laneId || (state.lanes[0] && state.lanes[0].id),
+        columnId: columnId || (state.columns[0] && state.columns[0].id)
+      };
+      state.cards.push(card); saveState(); renderBoard(); openCardModal(card);
+    }
+
+    function moveCard(cardId, { laneId, columnId }){
+      const card = state.cards.find(c=>c.id===cardId); if(!card) return;
+      if(laneId) card.laneId = laneId; if(columnId) card.columnId = columnId;
+      saveState(); renderBoard();
+    }
+
+    // ===== Modals infra =====
+    const overlay = qs('#overlay');
+    function openModal(contentEl){
+      overlay.innerHTML='';
+      overlay.appendChild(contentEl);
+      overlay.classList.add('open');
+      function onKey(e){ if(e.key==='Escape'){ closeModal(); } }
+      function onClick(e){ if(e.target===overlay) closeModal(); }
+      document.addEventListener('keydown', onKey, { once:true });
+      overlay.addEventListener('click', onClick, { once:true });
+    }
+    function closeModal(){ overlay.classList.remove('open'); overlay.innerHTML=''; }
+
+    // ===== Card Modal =====
+    function openCardModal(card){
+      const modal = document.createElement('div');
+      modal.className = 'modal';
+      modal.innerHTML = `
+        <header><div class="modal-title">Card</div></header>
+        <div class="modal-body">
+          <form id="cardForm">
+            <div class="modal-grid">
+              <div class="row"><label for="c_title">Nome</label><input id="c_title" required value="${escapeHtml(card.title)}"/></div>
+              <div class="row"><label for="c_assignee">Responsável</label><input id="c_assignee" value="${escapeHtml(card.assignee)}"/></div>
+              <div class="row"><label for="c_duration">Duração</label><input id="c_duration" value="${escapeHtml(card.duration)}" placeholder="Ex.: 2h 30m, 1.5h, 90m, 1:30"/></div>
+              <div class="row"><label for="c_cost">Custo</label><input id="c_cost" value="${escapeHtml(card.cost)}"/></div>
+
+              <div class="row"><label>Ferramentas Tecnologias</label>
+                <div id="toolsPicker" class="tokens" role="listbox" aria-multiselectable="true"></div>
+              </div>
+
+              <div class="row"><label>Tags</label>
+                <div id="tagsPicker" class="tokens" role="listbox" aria-multiselectable="true"></div>
+              </div>
+
+              <div class="row"><label for="c_color">Cor do card</label><input id="c_color" type="color" value="${card.color || '#7c9fff'}"/></div>
+              <div class="row"><label for="c_lane">Swimlane</label>
+                <select id="c_lane">${state.lanes.map(l=>`<option value="${l.id}" ${l.id===card.laneId?'selected':''}>${escapeHtml(l.title)}</option>`).join('')}</select>
+              </div>
+              <div class="row"><label for="c_col">Coluna</label>
+                <select id="c_col">${state.columns.map(c=>`<option value="${c.id}" ${c.id===card.columnId?'selected':''}>${escapeHtml(c

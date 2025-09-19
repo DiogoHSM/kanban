@@ -1,0 +1,28 @@
+{
+  "name": "kanban-board",
+  "version": "1.0.0",
+  "description": "Kanban Board modular com funcionalidades completas",
+  "main": "index.html",
+  "scripts": {
+    "dev": "python3 -m http.server 8000",
+    "serve": "python3 -m http.server 8000",
+    "build": "echo 'No build needed - static files'",
+    "test": "echo 'No tests specified'"
+  },
+  "keywords": [
+    "kanban",
+    "board",
+    "project-management",
+    "javascript",
+    "es6-modules"
+  ],
+  "author": "Diogo Martins",
+  "license": "MIT",
+  "devDependencies": {},
+  "dependencies": {},
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/diogomartins/kanban"
+  },
+  "homepage": "https://kanban.diogomartins.com"
+}

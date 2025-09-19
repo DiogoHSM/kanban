@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kanban Board - Debug</title>
+  <style>
+    :root{
+      --bg: #0f1115;
+      --panel: #171a21;
+      --muted: #8b95a7;
+      --text: #e6e9ef;
+      --accent: #7c9fff;
+      --card: #1d222b;
+      --border: #2a2f3a;
+      --shadow: 0 10px 30px rgba(0,0,0,.25);
+      --chip-bg: #252b36;
+      --danger: #ff4d4d;
+      --success: #28a745;
+      --warning: #f0ad4e;
+      --focus: #b4ccff;
+      --dashed: 4px dashed var(--border);
+    }
+    html[data-theme="light"]{
+      --bg: #f3f5f8;
+      --panel: #ffffff;
+      --muted: #5b6577;
+      --text: #12151a;
+      --accent: #3451ff;
+      --card: #ffffff;
+      --border: #e2e6ef;
+      --shadow: 0 6px 18px rgba(0,0,0,.08);
+      --chip-bg: #eef2f9;
+      --danger: #d33;
+      --success: #2e7d32;
+      --warning: #b57614;
+      --focus: #1b3dff;
+    }
+
+    *{box-sizing: border-box}
+    body{margin:0;background:var(--bg);color:var(--text);font:14px/1.45 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial}
+    
+    /* Header */
+    header{position:sticky;top:0;z-index:50;background:var(--panel);box-shadow:var(--shadow);border-bottom:1px solid var(--border)}
+    .hdr{display:grid;grid-template-columns: 180px 1fr auto;gap:12px;align-items:center;padding:12px 16px;max-width:1400px;margin:0 auto}
+    .title{font-weight:700;font-size:18px}
+    .search-wrap{display:flex;gap:8px;align-items:center}
+    .search{width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--border);background:transparent;color:var(--text)}
+    .btn{padding:8px 12px;border-radius:10px;border:1px solid var(--border);background:transparent;color:var(--text);cursor:pointer}
+    .btn:focus{outline:2px solid var(--focus);outline-offset:1px}
+    .btn.icon{display:inline-flex;align-items:center;gap:6px}
+    .btn.small{padding:6px 8px;font-size:12px}
+    .btn.success{background:var(--success);color:#fff;border-color:transparent}
+    .btn.danger{background:var(--danger);color:#fff;border-color:transparent}
+
+    /* Board */
+    .board{max-width:1400px;margin:16px auto;padding:0 16px}
+    .lane{margin-bottom:24px}
+    .lane-head{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+    .lane-title[contenteditable]{outline: none;border-bottom:1px dashed transparent}
+    .lane-title[contenteditable]:focus{border-color:var(--focus)}
+    .lane-actions{display:flex;gap:8px;margin-left:auto}
+    .lane-sum{color:var(--muted);font-size:12px}
+
+    .columns{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(240px,1fr);gap:12px;overflow-x:auto;padding-bottom:2px}
+    .column{background:var(--panel);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);display:flex;flex-direction:column;min-height:140px}
+    .col-head{display:flex;align-items:center;gap:8px;padding:10px;border-bottom:1px solid var(--border)}
+    .col-title[contenteditable]{flex:1;outline:none;border-bottom:1px dashed transparent}
+    .col-title[contenteditable]:focus{border-color:var(--focus)}
+    .col-actions{display:flex;gap:6px}
+    .col-sum{color:var(--muted);font-size:12px}
+
+    .col-body{padding:10px;display:flex;flex-direction:column;gap:10px;min-height:120px}
+    .col-body.empty{border: var(--dashed);border-radius:12px;display:flex;align-items:center;justify-content:center;color:var(--muted);padding:18px}
+
+    .card{background:var(--card);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);cursor:grab}
+    .card:active{cursor:grabbing}
+    .card-top{height:6px;border-top-left-radius:12px;border-top-right-radius:12px}
+    .card-body{padding:10px}
+    .card-title{font-weight:600;margin:0 0 6px}
+    .chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px}
+    .chip{background:var(--chip-bg);border:1px solid var(--border);border-radius:999px;padding:4px 8px;font-size:12px;color:var(--muted)}
+    .tag-dots{display:flex;gap:4px;margin-top:4px}
+    .dot{width:8px;height:8px;border-radius:50%;border:1px solid #0003}
+
+    /* Menu panel */
+    .menu-panel{position:fixed;right:16px;top:64px;background:var(--panel);border:1px solid var(--border);box-shadow:var(--shadow);border-radius:12px;display:none;z-index:80;min-width:260px}
+    .menu-panel.open{display:block}
+
+    .debug{position:fixed;bottom:20px;right:20px;background:var(--danger);color:white;padding:10px;border-radius:8px;z-index:1000}
+  </style>
+</head>
+<body>
+  <div class="debug" id="debug">Carregando...</div>
+  
+  <header aria-label="Barra superior">
+    <div class="hdr">
+      <div class="title">Kanban Board - Debug</div>
+      <div class="search-wrap">
+        <input id="search" class="search" type="search" placeholder="Buscar" />
+        <button id="btnFilters" class="btn">Filtros</button>
+      </div>
+      <div class="actions" style="display:flex;gap:8px;align-items:center;justify-self:end">
+        <button id="btnNewLane" class="btn success">+ Lane</button>
+        <button id="btnNewColumn" class="btn success">+ Coluna</button>
+        <button id="btnNewCard" class="btn success">+ Card</button>
+        <button id="btnMenu" class="btn icon">Menu</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="board" id="board"></main>
+
+  <div id="menuPanel" class="menu-panel">
+    <p>Menu funcionando</p>
+  </div>
+
+  <script>
+    // Debug logger
+    const debug = document.getElementById('debug');
+    function log(msg) {
+      console.log(msg);
+      debug.textContent = msg;
+    }
+
+    // Teste básico
+    log('Script carregado');
+
+    // Utilitários básicos
+    const uid = () => 'id-' + Math.random().toString(36).slice(2);
+    
+    // Estado simples para teste
+    let state = {
+      columns: [
+        { id: uid(), title: 'Backlog' },
+        { id: uid(), title: 'Doing' },
+        { id: uid(), title: 'Done' }
+      ],
+      lanes: [
+        { id: uid(), title: 'Geral' }
+      ],
+      cards: [
+        {
+          id: uid(),
+          title: 'Card de Teste',
+          assignee: 'João',
+          duration: '2h',
+          color: '#7c9fff',
+          laneId: '',
+          columnId: ''
+        }
+      ]
+    };
+
+    // Ajustar IDs dos cards
+    state.cards[0].laneId = state.lanes[0].id;
+    state.cards[0].columnId = state.columns[0].id;
+
+    log('Estado criado');
+
+    // Renderização básica
+    function renderBoard() {
+      const board = document.getElementById('board');
+      board.innerHTML = '';
+      
+      log('Renderizando board...');
+      
+      state.lanes.forEach(lane => {
+        const laneEl = document.createElement('div');
+        laneEl.className = 'lane';
+        
+        const laneHead = document.createElement('div');
+        laneHead.className = 'lane-head';
+        laneHead.innerHTML = `<div class="lane-title">${lane.title}</div>`;
+        
+        const columns = document.createElement('div');
+        columns.className = 'columns';
+        
+        state.columns.forEach(column => {
+          const colEl = document.createElement('div');
+          colEl.className = 'column';
+          
+          const colHead = document.createElement('div');
+          colHead.className = 'col-head';
+          colHead.innerHTML = `<div class="col-title">${column.title}</div>`;
+          
+          const colBody = document.createElement('div');
+          colBody.className = 'col-body';
+          
+          // Adicionar cards
+          const cardsInColumn = state.cards.filter(card => 
+            card.laneId === lane.id && card.columnId === column.id
+          );
+          
+          if (cardsInColumn.length === 0) {
+            colBody.className += ' empty';
+            colBody.textContent = 'Arraste cards aqui';
+          } else {
+            cardsInColumn.forEach(card => {
+              const cardEl = document.createElement('div');
+              cardEl.className = 'card';
+              cardEl.innerHTML = `
+                <div class="card-top" style="background:${card.color}"></div>
+                <div class="card-body">
+                  <div class="card-title">${card.title}</div>
+                  <div class="chips">
+                    ${card.assignee ? `<span class="chip">👤 ${card.assignee}</span>` : ''}
+                    ${card.duration ? `<span class="chip">⏱ ${card.duration}</span>` : ''}
+                  </div>
+                </div>
+              `;
+              colBody.appendChild(cardEl);
+            });
+          }
+          
+          colEl.appendChild(colHead);
+          colEl.appendChild(colBody);
+          columns.appendChild(colEl);
+        });
+        
+        laneEl.appendChild(laneHead);
+        laneEl.appendChild(columns);
+        board.appendChild(laneEl);
+      });
+      
+      log('Board renderizado com sucesso!');
+    }
+
+    // Event listeners básicos
+    document.getElementById('btnNewLane').addEventListener('click', () => {
+      log('Botão New Lane clicado');
+      state.lanes.push({ id: uid(), title: 'Nova Lane' });
+      renderBoard();
+    });
+
+    document.getElementById('btnNewColumn').addEventListener('click', () => {
+      log('Botão New Column clicado');
+      state.columns.push({ id: uid(), title: 'Nova Coluna' });
+      renderBoard();
+    });
+
+    document.getElementById('btnNewCard').addEventListener('click', () => {
+      log('Botão New Card clicado');
+      const newCard = {
+        id: uid(),
+        title: 'Novo Card',
+        assignee: '',
+        duration: '',
+        color: '#7c9fff',
+        laneId: state.lanes[0].id,
+        columnId: state.columns[0].id
+      };
+      state.cards.push(newCard);
+      renderBoard();
+    });
+
+    document.getElementById('btnMenu').addEventListener('click', () => {
+      log('Menu clicado');
+      const menu = document.getElementById('menuPanel');
+      menu.classList.toggle('open');
+    });
+
+    // Inicializar
+    document.addEventListener('DOMContentLoaded', () => {
+      log('DOM carregado');
+      renderBoard();
+      
+      setTimeout(() => {
+        debug.style.display = 'none';
+      }, 3000);
+    });
+  </script>
+</body>
+</html>
