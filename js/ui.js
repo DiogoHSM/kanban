@@ -44,8 +44,17 @@ export class UIRenderer {
     const headers = Utils.createElement('div', 'column-headers');
     const state = this.stateManager.getState();
     
-    state.columns.forEach(column => {
+    // Forçar layout flexbox horizontal
+    headers.style.display = 'flex';
+    headers.style.flexDirection = 'row';
+    headers.style.width = '100%';
+    
+    state.columns.forEach((column, index) => {
       const header = Utils.createElement('div', 'column-header');
+      
+      // Garantir largura igual para cada coluna
+      header.style.flex = '1';
+      header.style.minWidth = '240px';
       
       const title = Utils.createElement('div', 'column-header-title');
       title.textContent = column.title;
