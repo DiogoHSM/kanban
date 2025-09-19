@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Kanban Board - Debug</title>
+  <title>Kanban Board - DEBUG</title>
   <style>
     :root{
       --bg: #0f1115;
@@ -21,253 +21,295 @@
       --focus: #b4ccff;
       --dashed: 4px dashed var(--border);
     }
-    html[data-theme="light"]{
-      --bg: #f3f5f8;
-      --panel: #ffffff;
-      --muted: #5b6577;
-      --text: #12151a;
-      --accent: #3451ff;
-      --card: #ffffff;
-      --border: #e2e6ef;
-      --shadow: 0 6px 18px rgba(0,0,0,.08);
-      --chip-bg: #eef2f9;
-      --danger: #d33;
-      --success: #2e7d32;
-      --warning: #b57614;
-      --focus: #1b3dff;
-    }
 
     *{box-sizing: border-box}
     body{margin:0;background:var(--bg);color:var(--text);font:14px/1.45 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial}
-    
+
+    /* DEBUG: Bordas coloridas para identificar elementos */
+    .debug-board { border: 3px solid red; margin: 20px; padding: 20px; }
+    .debug-board-content { border: 3px solid blue; padding: 10px; }
+    .debug-column-headers { border: 3px solid green; padding: 10px; margin-bottom: 20px; }
+    .debug-column-header { border: 2px solid yellow; padding: 5px; margin: 2px; }
+    .debug-lane { border: 2px solid purple; margin: 10px 0; padding: 10px; }
+    .debug-columns { border: 2px solid orange; padding: 5px; }
+
     /* Header */
     header{position:sticky;top:0;z-index:50;background:var(--panel);box-shadow:var(--shadow);border-bottom:1px solid var(--border)}
     .hdr{display:grid;grid-template-columns: 180px 1fr auto;gap:12px;align-items:center;padding:12px 16px;max-width:1400px;margin:0 auto}
     .title{font-weight:700;font-size:18px}
-    .search-wrap{display:flex;gap:8px;align-items:center}
-    .search{width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--border);background:transparent;color:var(--text)}
     .btn{padding:8px 12px;border-radius:10px;border:1px solid var(--border);background:transparent;color:var(--text);cursor:pointer}
-    .btn:focus{outline:2px solid var(--focus);outline-offset:1px}
-    .btn.icon{display:inline-flex;align-items:center;gap:6px}
-    .btn.small{padding:6px 8px;font-size:12px}
     .btn.success{background:var(--success);color:#fff;border-color:transparent}
-    .btn.danger{background:var(--danger);color:#fff;border-color:transparent}
 
-    /* Board */
-    .board{max-width:1400px;margin:16px auto;padding:0 16px}
+    /* Cabeçalho das colunas - TESTE COM TABLE */
+    .column-headers{
+      display:table !important;
+      width:100% !important;
+      table-layout:fixed !important;
+      background: #333 !important;
+      border: 4px solid lime !important;
+    }
+
+    .column-header{
+      display:table-cell !important;
+      text-align:center !important;
+      padding:10px !important;
+      border:2px solid red !important;
+      background: #555 !important;
+      color: white !important;
+      vertical-align:middle !important;
+    }
+
+    .column-header-title{
+      font-weight:600;
+      margin-bottom:4px;
+      font-size:16px;
+      color: lime !important;
+    }
+
+    .column-header-total{
+      font-size:12px;
+      color: yellow !important;
+    }
+
+    /* Lanes e Colunas */
     .lane{margin-bottom:24px}
     .lane-head{display:flex;align-items:center;gap:10px;margin-bottom:8px}
-    .lane-title[contenteditable]{outline: none;border-bottom:1px dashed transparent}
-    .lane-title[contenteditable]:focus{border-color:var(--focus)}
-    .lane-actions{display:flex;gap:8px;margin-left:auto}
+    .lane-title{font-weight:600}
     .lane-sum{color:var(--muted);font-size:12px}
 
-    .columns{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(240px,1fr);gap:12px;overflow-x:auto;padding-bottom:2px}
-    .column{background:var(--panel);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);display:flex;flex-direction:column;min-height:140px}
-    .col-head{display:flex;align-items:center;gap:8px;padding:10px;border-bottom:1px solid var(--border)}
-    .col-title[contenteditable]{flex:1;outline:none;border-bottom:1px dashed transparent}
-    .col-title[contenteditable]:focus{border-color:var(--focus)}
-    .col-actions{display:flex;gap:6px}
-    .col-sum{color:var(--muted);font-size:12px}
+    .columns{
+      display:grid;
+      grid-auto-flow:column;
+      grid-auto-columns:minmax(240px,1fr);
+      gap:12px;
+    }
+    
+    .column{
+      background:var(--panel);
+      border:1px solid var(--border);
+      border-radius:14px;
+      min-height:140px;
+      padding:10px;
+    }
 
-    .col-body{padding:10px;display:flex;flex-direction:column;gap:10px;min-height:120px}
-    .col-body.empty{border: var(--dashed);border-radius:12px;display:flex;align-items:center;justify-content:center;color:var(--muted);padding:18px}
-
-    .card{background:var(--card);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);cursor:grab}
-    .card:active{cursor:grabbing}
-    .card-top{height:6px;border-top-left-radius:12px;border-top-right-radius:12px}
-    .card-body{padding:10px}
-    .card-title{font-weight:600;margin:0 0 6px}
-    .chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px}
-    .chip{background:var(--chip-bg);border:1px solid var(--border);border-radius:999px;padding:4px 8px;font-size:12px;color:var(--muted)}
-    .tag-dots{display:flex;gap:4px;margin-top:4px}
-    .dot{width:8px;height:8px;border-radius:50%;border:1px solid #0003}
-
-    /* Menu panel */
-    .menu-panel{position:fixed;right:16px;top:64px;background:var(--panel);border:1px solid var(--border);box-shadow:var(--shadow);border-radius:12px;display:none;z-index:80;min-width:260px}
-    .menu-panel.open{display:block}
-
-    .debug{position:fixed;bottom:20px;right:20px;background:var(--danger);color:white;padding:10px;border-radius:8px;z-index:1000}
+    /* Debug info */
+    .debug-info{
+      position:fixed;
+      top:10px;
+      right:10px;
+      background:rgba(0,0,0,0.9);
+      color:white;
+      padding:15px;
+      border-radius:8px;
+      font-family:monospace;
+      font-size:12px;
+      max-width:300px;
+      z-index:1000;
+    }
   </style>
 </head>
 <body>
-  <div class="debug" id="debug">Carregando...</div>
-  
-  <header aria-label="Barra superior">
+  <div class="debug-info" id="debugInfo">
+    <strong>DEBUG INFO</strong><br>
+    Status: <span id="status">Carregando...</span><br>
+    Headers encontrados: <span id="headerCount">0</span><br>
+    Colunas: <span id="columnCount">0</span><br>
+    Lanes: <span id="laneCount">0</span><br>
+    <button onclick="analyzeDOM()">Analisar DOM</button>
+    <button onclick="toggleBorders()">Toggle Bordas</button>
+  </div>
+
+  <header>
     <div class="hdr">
-      <div class="title">Kanban Board - Debug</div>
-      <div class="search-wrap">
-        <input id="search" class="search" type="search" placeholder="Buscar" />
-        <button id="btnFilters" class="btn">Filtros</button>
-      </div>
-      <div class="actions" style="display:flex;gap:8px;align-items:center;justify-self:end">
-        <button id="btnNewLane" class="btn success">+ Lane</button>
-        <button id="btnNewColumn" class="btn success">+ Coluna</button>
-        <button id="btnNewCard" class="btn success">+ Card</button>
-        <button id="btnMenu" class="btn icon">Menu</button>
+      <div class="title">Kanban Board - DEBUG</div>
+      <div style="flex:1"></div>
+      <div class="actions">
+        <button class="btn success" onclick="addColumn()">+ Coluna</button>
+        <button class="btn success" onclick="addLane()">+ Lane</button>
       </div>
     </div>
   </header>
 
-  <main class="board" id="board"></main>
+  <main class="debug-board" id="board">
+    <div class="debug-board-content" id="boardContent">
+      <div class="debug-column-headers" id="columnHeaders">
+        <div class="debug-column-header">
+          <div class="column-header-title">BCR</div>
+          <div class="column-header-total">⏱ 2h</div>
+        </div>
+        <div class="debug-column-header">
+          <div class="column-header-title">Social Insider</div>
+          <div class="column-header-total">⏱ 5h</div>
+        </div>
+        <div class="debug-column-header">
+          <div class="column-header-title">Nova coluna</div>
+          <div class="column-header-total">⏱ 0m</div>
+        </div>
+      </div>
 
-  <div id="menuPanel" class="menu-panel">
-    <p>Menu funcionando</p>
-  </div>
+      <div class="debug-lane">
+        <div class="lane-head">
+          <div class="lane-title">Engenheiro de Dados</div>
+          <div class="lane-sum">⏱ 7h</div>
+        </div>
+        <div class="debug-columns">
+          <div class="column">
+            <h4>BCR</h4>
+            <p>Cards da coluna BCR</p>
+          </div>
+          <div class="column">
+            <h4>Social Insider</h4>
+            <p>Cards da coluna Social</p>
+          </div>
+          <div class="column">
+            <h4>Nova coluna</h4>
+            <p>Cards da nova coluna</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="debug-lane">
+        <div class="lane-head">
+          <div class="lane-title">Arquiteto IA</div>
+          <div class="lane-sum">⏱ 3h</div>
+        </div>
+        <div class="debug-columns">
+          <div class="column">
+            <h4>BCR</h4>
+            <p>Cards da coluna BCR</p>
+          </div>
+          <div class="column">
+            <h4>Social Insider</h4>
+            <p>Cards da coluna Social</p>
+          </div>
+          <div class="column">
+            <h4>Nova coluna</h4>
+            <p>Cards da nova coluna</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
 
   <script>
-    // Debug logger
-    const debug = document.getElementById('debug');
-    function log(msg) {
-      console.log(msg);
-      debug.textContent = msg;
+    let bordersVisible = true;
+
+    function updateDebugInfo() {
+      const headers = document.querySelectorAll('.column-header');
+      const columns = document.querySelectorAll('.column');
+      const lanes = document.querySelectorAll('.debug-lane');
+      
+      document.getElementById('status').textContent = 'Ativo';
+      document.getElementById('headerCount').textContent = headers.length;
+      document.getElementById('columnCount').textContent = columns.length;
+      document.getElementById('laneCount').textContent = lanes.length;
     }
 
-    // Teste básico
-    log('Script carregado');
-
-    // Utilitários básicos
-    const uid = () => 'id-' + Math.random().toString(36).slice(2);
-    
-    // Estado simples para teste
-    let state = {
-      columns: [
-        { id: uid(), title: 'Backlog' },
-        { id: uid(), title: 'Doing' },
-        { id: uid(), title: 'Done' }
-      ],
-      lanes: [
-        { id: uid(), title: 'Geral' }
-      ],
-      cards: [
-        {
-          id: uid(),
-          title: 'Card de Teste',
-          assignee: 'João',
-          duration: '2h',
-          color: '#7c9fff',
-          laneId: '',
-          columnId: ''
+    function analyzeDOM() {
+      const headers = document.getElementById('columnHeaders');
+      const info = {
+        'Headers container': {
+          display: getComputedStyle(headers).display,
+          width: getComputedStyle(headers).width,
+          tableLayout: getComputedStyle(headers).tableLayout
         }
-      ]
-    };
+      };
 
-    // Ajustar IDs dos cards
-    state.cards[0].laneId = state.lanes[0].id;
-    state.cards[0].columnId = state.columns[0].id;
-
-    log('Estado criado');
-
-    // Renderização básica
-    function renderBoard() {
-      const board = document.getElementById('board');
-      board.innerHTML = '';
-      
-      log('Renderizando board...');
-      
-      state.lanes.forEach(lane => {
-        const laneEl = document.createElement('div');
-        laneEl.className = 'lane';
-        
-        const laneHead = document.createElement('div');
-        laneHead.className = 'lane-head';
-        laneHead.innerHTML = `<div class="lane-title">${lane.title}</div>`;
-        
-        const columns = document.createElement('div');
-        columns.className = 'columns';
-        
-        state.columns.forEach(column => {
-          const colEl = document.createElement('div');
-          colEl.className = 'column';
-          
-          const colHead = document.createElement('div');
-          colHead.className = 'col-head';
-          colHead.innerHTML = `<div class="col-title">${column.title}</div>`;
-          
-          const colBody = document.createElement('div');
-          colBody.className = 'col-body';
-          
-          // Adicionar cards
-          const cardsInColumn = state.cards.filter(card => 
-            card.laneId === lane.id && card.columnId === column.id
-          );
-          
-          if (cardsInColumn.length === 0) {
-            colBody.className += ' empty';
-            colBody.textContent = 'Arraste cards aqui';
-          } else {
-            cardsInColumn.forEach(card => {
-              const cardEl = document.createElement('div');
-              cardEl.className = 'card';
-              cardEl.innerHTML = `
-                <div class="card-top" style="background:${card.color}"></div>
-                <div class="card-body">
-                  <div class="card-title">${card.title}</div>
-                  <div class="chips">
-                    ${card.assignee ? `<span class="chip">👤 ${card.assignee}</span>` : ''}
-                    ${card.duration ? `<span class="chip">⏱ ${card.duration}</span>` : ''}
-                  </div>
-                </div>
-              `;
-              colBody.appendChild(cardEl);
-            });
-          }
-          
-          colEl.appendChild(colHead);
-          colEl.appendChild(colBody);
-          columns.appendChild(colEl);
-        });
-        
-        laneEl.appendChild(laneHead);
-        laneEl.appendChild(columns);
-        board.appendChild(laneEl);
+      document.querySelectorAll('.column-header').forEach((header, i) => {
+        info[`Header ${i+1}`] = {
+          display: getComputedStyle(header).display,
+          width: getComputedStyle(header).width,
+          textAlign: getComputedStyle(header).textAlign
+        };
       });
-      
-      log('Board renderizado com sucesso!');
+
+      console.log('DOM Analysis:', info);
+      alert('Análise no console - pressione F12');
     }
 
-    // Event listeners básicos
-    document.getElementById('btnNewLane').addEventListener('click', () => {
-      log('Botão New Lane clicado');
-      state.lanes.push({ id: uid(), title: 'Nova Lane' });
-      renderBoard();
-    });
+    function toggleBorders() {
+      const elements = document.querySelectorAll('[class*="debug-"]');
+      bordersVisible = !bordersVisible;
+      
+      elements.forEach(el => {
+        if (bordersVisible) {
+          el.style.border = el.className.includes('board') ? '3px solid red' :
+                           el.className.includes('content') ? '3px solid blue' :
+                           el.className.includes('headers') ? '3px solid green' :
+                           el.className.includes('header') ? '2px solid yellow' :
+                           el.className.includes('lane') ? '2px solid purple' :
+                           '2px solid orange';
+        } else {
+          el.style.border = 'none';
+        }
+      });
+    }
 
-    document.getElementById('btnNewColumn').addEventListener('click', () => {
-      log('Botão New Column clicado');
-      state.columns.push({ id: uid(), title: 'Nova Coluna' });
-      renderBoard();
-    });
+    function addColumn() {
+      const headers = document.getElementById('columnHeaders');
+      const newHeader = document.createElement('div');
+      newHeader.className = 'debug-column-header';
+      newHeader.innerHTML = `
+        <div class="column-header-title">Nova Coluna ${headers.children.length + 1}</div>
+        <div class="column-header-total">⏱ 0m</div>
+      `;
+      headers.appendChild(newHeader);
 
-    document.getElementById('btnNewCard').addEventListener('click', () => {
-      log('Botão New Card clicado');
-      const newCard = {
-        id: uid(),
-        title: 'Novo Card',
-        assignee: '',
-        duration: '',
-        color: '#7c9fff',
-        laneId: state.lanes[0].id,
-        columnId: state.columns[0].id
-      };
-      state.cards.push(newCard);
-      renderBoard();
-    });
+      // Adicionar coluna em cada lane
+      document.querySelectorAll('.debug-columns').forEach(columns => {
+        const newCol = document.createElement('div');
+        newCol.className = 'column';
+        newCol.innerHTML = `<h4>Nova Coluna</h4><p>Coluna adicionada</p>`;
+        columns.appendChild(newCol);
+      });
 
-    document.getElementById('btnMenu').addEventListener('click', () => {
-      log('Menu clicado');
-      const menu = document.getElementById('menuPanel');
-      menu.classList.toggle('open');
-    });
+      updateDebugInfo();
+    }
+
+    function addLane() {
+      const boardContent = document.getElementById('boardContent');
+      const headerCount = document.querySelectorAll('.column-header').length;
+      
+      const newLane = document.createElement('div');
+      newLane.className = 'debug-lane';
+      
+      let columnsHTML = '';
+      for(let i = 0; i < headerCount; i++) {
+        columnsHTML += `<div class="column"><h4>Coluna ${i+1}</h4><p>Nova lane</p></div>`;
+      }
+      
+      newLane.innerHTML = `
+        <div class="lane-head">
+          <div class="lane-title">Nova Lane ${document.querySelectorAll('.debug-lane').length + 1}</div>
+          <div class="lane-sum">⏱ 0h</div>
+        </div>
+        <div class="debug-columns">${columnsHTML}</div>
+      `;
+      
+      boardContent.appendChild(newLane);
+      updateDebugInfo();
+    }
 
     // Inicializar
     document.addEventListener('DOMContentLoaded', () => {
-      log('DOM carregado');
-      renderBoard();
+      updateDebugInfo();
       
+      // Aplicar CSS forçado após carregamento
       setTimeout(() => {
-        debug.style.display = 'none';
-      }, 3000);
+        const headers = document.getElementById('columnHeaders');
+        headers.style.display = 'table';
+        headers.style.width = '100%';
+        headers.style.tableLayout = 'fixed';
+        
+        document.querySelectorAll('.column-header').forEach(header => {
+          header.style.display = 'table-cell';
+          header.style.textAlign = 'center';
+          header.style.verticalAlign = 'middle';
+        });
+        
+        console.log('CSS forçado aplicado');
+        updateDebugInfo();
+      }, 100);
     });
   </script>
 </body>
