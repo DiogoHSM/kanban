@@ -41,12 +41,42 @@ header{position:sticky;top:0;z-index:50;background:var(--panel);box-shadow:var(-
 .title{font-weight:700;font-size:18px}
 .search-wrap{display:flex;gap:8px;align-items:center}
 .search{width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--border);background:transparent;color:var(--text)}
-.btn{padding:8px 12px;border-radius:10px;border:1px solid var(--border);background:transparent;color:var(--text);cursor:pointer}
+.btn{padding:8px 12px;border-radius:10px;border:1px solid var(--border);background:transparent;color:var(--text);cursor:pointer;transition:all 0.2s ease}
 .btn:focus{outline:2px solid var(--focus);outline-offset:1px}
 .btn.icon{display:inline-flex;align-items:center;gap:6px}
 .btn.small{padding:6px 8px;font-size:12px}
-.btn.success{background:var(--success);color:#fff;border-color:transparent}
-.btn.danger{background:var(--danger);color:#fff;border-color:transparent}
+
+/* Botões com hover suave */
+.btn.success{
+  background:transparent;
+  color:var(--success);
+  border-color:var(--success);
+}
+.btn.success:hover{
+  background:var(--success);
+  color:#fff;
+  transform:translateY(-1px);
+  box-shadow:0 4px 12px rgba(40, 167, 69, 0.3);
+}
+
+.btn.danger{
+  background:transparent;
+  color:var(--danger);
+  border-color:var(--danger);
+}
+.btn.danger:hover{
+  background:var(--danger);
+  color:#fff;
+  transform:translateY(-1px);
+  box-shadow:0 4px 12px rgba(255, 77, 77, 0.3);
+}
+
+/* Botão padrão com hover sutil */
+.btn:not(.success):not(.danger):hover{
+  background:var(--chip-bg);
+  border-color:var(--accent);
+  transform:translateY(-1px);
+}
 
 /* Board - NOVO SISTEMA */
 .board{max-width:1400px;margin:16px auto;padding:0 16px}

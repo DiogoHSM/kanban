@@ -44,7 +44,7 @@ export class UIRenderer {
     const headers = Utils.createElement('div', 'column-headers');
     const state = this.stateManager.getState();
     
-    // IMPORTANTE: Criar uma única linha de tabela
+    // Criar uma única linha de tabela
     const headerRow = Utils.createElement('div');
     headerRow.style.display = 'table-row';
     
@@ -59,10 +59,10 @@ export class UIRenderer {
       total.textContent = '⏱ ' + Utils.formatMin(totalMinutes);
       
       header.append(title, total);
-      headerRow.appendChild(header); // Adicionar à ROW, não diretamente aos headers
+      headerRow.appendChild(header);
     });
     
-    headers.appendChild(headerRow); // Adicionar a row aos headers
+    headers.appendChild(headerRow);
     return headers;
   }
 
@@ -96,16 +96,11 @@ export class UIRenderer {
   createLaneActions(lane) {
     const actions = Utils.createElement('div', 'lane-actions');
     
-    const btnAddCard = Utils.createButton('+ Card', () => {
-      const card = this.stateManager.createCard({ laneId: lane.id });
-      this.modalManager.openCardModal(card, this.stateManager);
-    }, 'small success');
-
     const btnDeleteLane = Utils.createButton('X', () => {
       this.stateManager.deleteLane(lane.id, true);
     }, 'small danger');
 
-    actions.append(btnAddCard, btnDeleteLane);
+    actions.append(btnDeleteLane);
     return actions;
   }
 

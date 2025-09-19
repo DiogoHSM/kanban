@@ -61,11 +61,6 @@ class KanbanApp {
       this.stateManager.createColumn();
     });
 
-    document.getElementById('btnNewCard').addEventListener('click', () => {
-      const card = this.stateManager.createCard({});
-      this.modalManager.openCardModal(card, this.stateManager);
-    });
-
     document.getElementById('btnFilters').addEventListener('click', () => {
       this.modalManager.openFiltersModal(this.stateManager, this.filterManager);
     });
