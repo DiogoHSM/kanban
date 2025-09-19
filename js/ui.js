@@ -14,13 +14,30 @@ export class UIRenderer {
     
     const state = this.stateManager.getState();
     
+    // Criar container com scroll
+    const boardContent = Utils.createElement('div', 'board-content');
+    
+    // Calcular largura mínima baseada no número de colunas
+    const minWidth = state.columns.length * 252; // 240px + 12px gap
+    boardContent.style.minWidth = `${minWidth}px`;
+    
     // Renderizar cabeçalho das colunas
-    this.boardElement.appendChild(this.renderColumnHeaders());
+    const headers = this.renderColumnHeaders();
+    headers.style.minWidth = `${minWidth}px`;
+    boardContent.appendChild(headers);
     
     // Renderizar lanes
     state.lanes.forEach(lane => {
-      this.boardElement.appendChild(this.renderLane(lane));
+      const laneElement = this.renderLane(lane);
+      // Garantir que as colunas tenham a mesma largura
+      const columns = laneElement.querySelector('.columns');
+      if (columns) {
+        columns.style.minWidth = `${minWidth}px`;
+      }
+      boardContent.appendChild(laneElement);
     });
+    
+    this.boardElement.appendChild(boardContent);
   }
 
   renderColumnHeaders() {
