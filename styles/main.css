@@ -177,8 +177,77 @@ header{position:sticky;top:0;z-index:50;background:var(--panel);box-shadow:var(-
 .modal .row{display:flex;flex-direction:column;gap:6px}
 label{color:var(--muted);font-size:12px}
 input,select,textarea{padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text)}
+
+/* Input de cor - corrigir visualização */
+input[type="color"]{
+  width:60px;
+  height:40px;
+  padding:4px;
+  border:1px solid var(--border);
+  border-radius:8px;
+  background:var(--panel);
+  cursor:pointer;
+}
+input[type="color"]::-webkit-color-swatch-wrapper{
+  padding:2px;
+  border-radius:4px;
+}
+input[type="color"]::-webkit-color-swatch{
+  border:none;
+  border-radius:4px;
+}
+input[type="color"]::-moz-color-swatch{
+  border:none;
+  border-radius:4px;
+}
+
 textarea{min-height:90px;resize:vertical}
 .modal footer{display:flex;justify-content:flex-end;gap:8px;padding:12px 16px;border-top:1px solid var(--border)}
+
+/* Modal de Relatórios - Maior */
+.modal.reports{max-width:1200px;width:min(calc(100% - 24px), 1200px);height:80vh}
+.modal.reports .modal-body{max-height:calc(80vh - 120px);padding:0}
+
+/* Abas para relatórios */
+.report-tabs{display:flex;border-bottom:1px solid var(--border);background:var(--chip-bg)}
+.report-tab{padding:12px 20px;border:none;background:transparent;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;transition:all 0.2s}
+.report-tab:hover{color:var(--text);background:var(--border)}
+.report-tab.active{color:var(--accent);border-bottom-color:var(--accent);background:var(--panel)}
+
+/* Conteúdo dos relatórios */
+.report-content{padding:20px;display:none}
+.report-content.active{display:block}
+
+/* Tabelas de relatório */
+.report-table{width:100%;border-collapse:collapse;margin-bottom:20px}
+.report-table th,.report-table td{padding:8px 12px;border-bottom:1px solid var(--border);text-align:left}
+.report-table th{background:var(--chip-bg);font-weight:600;font-size:12px;color:var(--muted)}
+.report-table tr:hover{background:var(--chip-bg)}
+
+/* Sumários de seção */
+.report-section{margin-bottom:30px;border:1px solid var(--border);border-radius:8px;overflow:hidden}
+.report-section-header{background:var(--chip-bg);padding:12px 16px;font-weight:600;border-bottom:1px solid var(--border)}
+.report-section-content{padding:16px}
+
+/* Gráficos simples com CSS - Paleta Pastel */
+.chart-container{margin:20px 0}
+.chart-bar{display:flex;align-items:center;margin-bottom:8px}
+.chart-label{min-width:120px;font-size:12px;color:var(--muted)}
+.chart-bar-bg{flex:1;height:20px;background:var(--chip-bg);border-radius:10px;margin:0 10px;position:relative;overflow:hidden}
+.chart-bar-fill{height:100%;border-radius:10px;transition:width 0.3s ease}
+.chart-value{min-width:80px;font-size:12px;text-align:right}
+
+/* Paleta de cores pastel para gráficos */
+.chart-bar:nth-child(1) .chart-bar-fill{background:#FFB3BA} /* Rosa pastel */
+.chart-bar:nth-child(2) .chart-bar-fill{background:#BAFFC9} /* Verde pastel */
+.chart-bar:nth-child(3) .chart-bar-fill{background:#BAE1FF} /* Azul pastel */
+.chart-bar:nth-child(4) .chart-bar-fill{background:#FFFFBA} /* Amarelo pastel */
+.chart-bar:nth-child(5) .chart-bar-fill{background:#FFDFBA} /* Pêssego pastel */
+.chart-bar:nth-child(6) .chart-bar-fill{background:#E0BBE4} /* Lavanda pastel */
+.chart-bar:nth-child(7) .chart-bar-fill{background:#C7CEEA} /* Periwinkle pastel */
+.chart-bar:nth-child(8) .chart-bar-fill{background:#B5EAD7} /* Menta pastel */
+.chart-bar:nth-child(9) .chart-bar-fill{background:#FFDAC1} /* Salmão pastel */
+.chart-bar:nth-child(10) .chart-bar-fill{background:#E2F0CB} /* Lima pastel */
 
 /* Menu panel */
 .menu-panel{position:fixed;right:16px;top:64px;background:var(--panel);border:1px solid var(--border);box-shadow:var(--shadow);border-radius:12px;display:none;z-index:80;min-width:260px}

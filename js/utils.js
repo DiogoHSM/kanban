@@ -88,6 +88,50 @@ export class Utils {
     return out.join(' ');
   }
 
+  static parseDurationToMin(text) {
+    if (!text) return 0;
+    
+    let s = String(text).trim().toLowerCase().replace(/,/g, '.');
+    
+    // Pattern "H:M" -> hours + minutes
+    const hm = s.match(/^(\d{1,3}):(\d{1,2})$/);
+    if (hm) {
+      const h = +hm[1], m = +hm[2];
+      return h * 60 + m;
+    }
+    
+    // Tokens like 1.5h 30m 2d 1w
+    let total = 0;
+    let matched = false;
+    
+    s.replace(/(\d+(?:\.\d+)?)\s*(w|sem|semanas?|d|dias?|day|h|hr|hrs|horas?|m|min|mins|minutos?)/g, 
+      (match, num, unit) => {
+        matched = true;
+        const n = parseFloat(num);
+        
+        if (/w|sem|semanas?/.test(unit)) {
+          total += n * 5 * 8 * 60; // semana = 5 dias úteis de 8h
+        } else if (/d|dias?|day/.test(unit)) {
+          total += n * 8 * 60; // dia = 8h
+        } else if (/h|hr|hrs|horas?/.test(unit)) {
+          total += n * 60;
+        } else {
+          total += n; // minutos
+        }
+        
+        return '';
+      }
+    );
+    
+    if (matched) return Math.round(total);
+    
+    // Plain number -> hours
+    const num = parseFloat(s);
+    if (!isNaN(num)) return Math.round(num * 60);
+    
+    return 0;
+  }
+
   // Criação de elementos
   static createElement(tag, className = '', textContent = '') {
     const element = document.createElement(tag);
