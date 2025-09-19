@@ -470,6 +470,416 @@ export class ModalManager {
     return assignees;
   }
 
+  openReportsModal(stateManager) {
+    const modal = this.createReportsModal(stateManager);
+    this.openModal(modal);
+  }
+
+  createReportsModal(stateManager) {
+    const modal = Utils.createElement('div', 'modal reports');
+    
+    modal.innerHTML = `
+      <header><div class="modal-title">Relatórios do Kanban</div></header>
+      <div class="modal-body">
+        <div class="report-tabs">
+          <button class="report-tab active" data-tab="columns">Por Coluna</button>
+          <button class="report-tab" data-tab="lanes">Por Lane</button>
+          <button class="report-tab" data-tab="assignees">Por Responsável</button>
+          <button class="report-tab" data-tab="charts">Gráficos</button>
+        </div>
+        <div id="reportColumns" class="report-content active"></div>
+        <div id="reportLanes" class="report-content"></div>
+        <div id="reportAssignees" class="report-content"></div>
+        <div id="reportCharts" class="report-content"></div>
+      </div>
+      <footer>
+        <button class="btn" id="closeReports">Fechar</button>
+      </footer>
+    `;
+
+    this.setupReportTabs(modal);
+    this.generateReports(modal, stateManager);
+
+    modal.querySelector('#closeReports').addEventListener('click', () => {
+      this.closeModal();
+    });
+
+    return modal;
+  }
+
+  setupReportTabs(modal) {
+    const tabs = modal.querySelectorAll('.report-tab');
+    const contents = modal.querySelectorAll('.report-content');
+
+    tabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        tabs.forEach(t => t.classList.remove('active'));
+        contents.forEach(c => c.classList.remove('active'));
+        
+        tab.classList.add('active');
+        const targetId = 'report' + tab.dataset.tab.charAt(0).toUpperCase() + tab.dataset.tab.slice(1);
+        modal.querySelector('#' + targetId).classList.add('active');
+      });
+    });
+  }
+
+  generateReports(modal, stateManager) {
+    const state = stateManager.getState();
+    const filteredCards = this.getFilteredCardsForReports(state);
+    
+    this.generateColumnReport(modal.querySelector('#reportColumns'), state, filteredCards);
+    this.generateLaneReport(modal.querySelector('#reportLanes'), state, filteredCards);
+    this.generateAssigneeReport(modal.querySelector('#reportAssignees'), state, filteredCards);
+    this.generateChartsReport(modal.querySelector('#reportCharts'), state, filteredCards);
+  }
+
+  getFilteredCardsForReports(state) {
+    return state.cards.filter(card => {
+      const filter = state.filter;
+      
+      if (filter.search) {
+        const searchTerm = filter.search.toLowerCase();
+        const searchableText = [
+          card.title || '',
+          card.assignee || '',
+          card.desc || ''
+        ].join(' ').toLowerCase();
+        
+        if (!searchableText.includes(searchTerm)) return false;
+      }
+      
+      if (filter.laneIds && filter.laneIds.length > 0) {
+        if (!filter.laneIds.includes(card.laneId)) return false;
+      }
+      
+      if (filter.tags && filter.tags.length > 0) {
+        const cardTags = card.tags || [];
+        if (!filter.tags.every(tag => cardTags.includes(tag))) return false;
+      }
+      
+      if (filter.tools && filter.tools.length > 0) {
+        const cardTools = card.tools || [];
+        if (!filter.tools.every(tool => cardTools.includes(tool))) return false;
+      }
+      
+      return true;
+    });
+  }
+
+  generateColumnReport(container, state, filteredCards) {
+    let html = '<h3>Relatório por Coluna</h3>';
+    
+    state.columns.forEach(column => {
+      const columnCards = filteredCards.filter(card => card.columnId === column.id);
+      const totalCost = this.calculateTotalCost(columnCards, state);
+      const totalDuration = this.calculateTotalDuration(columnCards);
+      
+      html += `
+        <div class="report-section">
+          <div class="report-section-header">
+            ${Utils.escapeHtml(column.title)} - ${Utils.formatMin(totalDuration)} - ${totalCost}
+          </div>
+          <div class="report-section-content">
+            <table class="report-table">
+              <thead>
+                <tr>
+                  <th>Lane</th>
+                  <th>Card</th>
+                  <th>Responsável</th>
+                  <th>Duração</th>
+                  <th>Custo</th>
+                </tr>
+              </thead>
+              <tbody>
+      `;
+      
+      columnCards.forEach(card => {
+        const lane = state.lanes.find(l => l.id === card.laneId);
+        const cardCost = this.parseCardCost(card.cost);
+        html += `
+          <tr>
+            <td>${Utils.escapeHtml(lane ? lane.title : 'N/A')}</td>
+            <td>${Utils.escapeHtml(card.title)}</td>
+            <td>${Utils.escapeHtml(card.assignee || 'Não atribuído')}</td>
+            <td>${Utils.formatMin(Utils.parseDurationToMin(card.duration))}</td>
+            <td>${cardCost}</td>
+          </tr>
+        `;
+      });
+      
+      html += '</tbody></table></div></div>';
+    });
+    
+    container.innerHTML = html;
+  }
+
+  generateLaneReport(container, state, filteredCards) {
+    let html = '<h3>Relatório por Lane</h3>';
+    
+    state.lanes.forEach(lane => {
+      const laneCards = filteredCards.filter(card => card.laneId === lane.id);
+      const totalCost = this.calculateTotalCost(laneCards, state);
+      const totalDuration = this.calculateTotalDuration(laneCards);
+      
+      html += `
+        <div class="report-section">
+          <div class="report-section-header">
+            ${Utils.escapeHtml(lane.title)} - ${Utils.formatMin(totalDuration)} - ${totalCost}
+          </div>
+          <div class="report-section-content">
+            <table class="report-table">
+              <thead>
+                <tr>
+                  <th>Coluna</th>
+                  <th>Card</th>
+                  <th>Responsável</th>
+                  <th>Duração</th>
+                  <th>Custo</th>
+                </tr>
+              </thead>
+              <tbody>
+      `;
+      
+      laneCards.forEach(card => {
+        const column = state.columns.find(c => c.id === card.columnId);
+        const cardCost = this.parseCardCost(card.cost);
+        html += `
+          <tr>
+            <td>${Utils.escapeHtml(column ? column.title : 'N/A')}</td>
+            <td>${Utils.escapeHtml(card.title)}</td>
+            <td>${Utils.escapeHtml(card.assignee || 'Não atribuído')}</td>
+            <td>${Utils.formatMin(Utils.parseDurationToMin(card.duration))}</td>
+            <td>${cardCost}</td>
+          </tr>
+        `;
+      });
+      
+      html += '</tbody></table></div></div>';
+    });
+    
+    container.innerHTML = html;
+  }
+
+  generateAssigneeReport(container, state, filteredCards) {
+    let html = '<h3>Relatório por Responsável</h3>';
+    
+    const assigneeGroups = {};
+    filteredCards.forEach(card => {
+      const assignee = card.assignee || 'Não atribuído';
+      if (!assigneeGroups[assignee]) {
+        assigneeGroups[assignee] = [];
+      }
+      assigneeGroups[assignee].push(card);
+    });
+    
+    Object.entries(assigneeGroups).forEach(([assigneeName, cards]) => {
+      const totalCost = this.calculateTotalCost(cards, state);
+      const totalDuration = this.calculateTotalDuration(cards);
+      
+      html += `
+        <div class="report-section">
+          <div class="report-section-header">
+            ${Utils.escapeHtml(assigneeName)} - ${Utils.formatMin(totalDuration)} - ${totalCost}
+          </div>
+          <div class="report-section-content">
+            <h4>Por Lane:</h4>
+            <table class="report-table">
+              <thead>
+                <tr>
+                  <th>Lane</th>
+                  <th>Cards</th>
+                  <th>Duração Total</th>
+                  <th>Custo Total</th>
+                </tr>
+              </thead>
+              <tbody>
+      `;
+      
+      const laneGroups = {};
+      cards.forEach(card => {
+        const laneId = card.laneId;
+        if (!laneGroups[laneId]) laneGroups[laneId] = [];
+        laneGroups[laneId].push(card);
+      });
+      
+      Object.entries(laneGroups).forEach(([laneId, laneCards]) => {
+        const lane = state.lanes.find(l => l.id === laneId);
+        const laneCost = this.calculateTotalCost(laneCards, state);
+        const laneDuration = this.calculateTotalDuration(laneCards);
+        
+        html += `
+          <tr>
+            <td>${Utils.escapeHtml(lane ? lane.title : 'N/A')}</td>
+            <td>${laneCards.length}</td>
+            <td>${Utils.formatMin(laneDuration)}</td>
+            <td>${laneCost}</td>
+          </tr>
+        `;
+      });
+      
+      html += '</tbody></table>';
+      
+      html += `
+            <h4>Por Coluna:</h4>
+            <table class="report-table">
+              <thead>
+                <tr>
+                  <th>Coluna</th>
+                  <th>Cards</th>
+                  <th>Duração Total</th>
+                  <th>Custo Total</th>
+                </tr>
+              </thead>
+              <tbody>
+      `;
+      
+      const columnGroups = {};
+      cards.forEach(card => {
+        const columnId = card.columnId;
+        if (!columnGroups[columnId]) columnGroups[columnId] = [];
+        columnGroups[columnId].push(card);
+      });
+      
+      Object.entries(columnGroups).forEach(([columnId, columnCards]) => {
+        const column = state.columns.find(c => c.id === columnId);
+        const columnCost = this.calculateTotalCost(columnCards, state);
+        const columnDuration = this.calculateTotalDuration(columnCards);
+        
+        html += `
+          <tr>
+            <td>${Utils.escapeHtml(column ? column.title : 'N/A')}</td>
+            <td>${columnCards.length}</td>
+            <td>${Utils.formatMin(columnDuration)}</td>
+            <td>${columnCost}</td>
+          </tr>
+        `;
+      });
+      
+      html += '</tbody></table></div></div>';
+    });
+    
+    container.innerHTML = html;
+  }
+
+  generateChartsReport(container, state, filteredCards) {
+    let html = '<h3>Gráficos de Duração e Custo</h3>';
+    
+    html += '<h4>Por Coluna</h4><div class="chart-container">';
+    const columnData = this.calculateColumnData(state, filteredCards);
+    const maxColumnCost = Math.max(...columnData.map(d => d.cost));
+    
+    columnData.forEach(data => {
+      const percentage = maxColumnCost > 0 ? (data.cost / maxColumnCost) * 100 : 0;
+      html += `
+        <div class="chart-bar">
+          <div class="chart-label">${Utils.escapeHtml(data.name)}</div>
+          <div class="chart-bar-bg">
+            <div class="chart-bar-fill" style="width: ${percentage}%"></div>
+          </div>
+          <div class="chart-value">R$ ${data.cost.toFixed(2)}</div>
+        </div>
+      `;
+    });
+    html += '</div>';
+    
+    html += '<h4>Por Lane</h4><div class="chart-container">';
+    const laneData = this.calculateLaneData(state, filteredCards);
+    const maxLaneCost = Math.max(...laneData.map(d => d.cost));
+    
+    laneData.forEach(data => {
+      const percentage = maxLaneCost > 0 ? (data.cost / maxLaneCost) * 100 : 0;
+      html += `
+        <div class="chart-bar">
+          <div class="chart-label">${Utils.escapeHtml(data.name)}</div>
+          <div class="chart-bar-bg">
+            <div class="chart-bar-fill" style="width: ${percentage}%"></div>
+          </div>
+          <div class="chart-value">R$ ${data.cost.toFixed(2)}</div>
+        </div>
+      `;
+    });
+    html += '</div>';
+    
+    html += '<h4>Por Responsável</h4><div class="chart-container">';
+    const assigneeData = this.calculateAssigneeData(state, filteredCards);
+    const maxAssigneeCost = Math.max(...assigneeData.map(d => d.cost));
+    
+    assigneeData.forEach(data => {
+      const percentage = maxAssigneeCost > 0 ? (data.cost / maxAssigneeCost) * 100 : 0;
+      html += `
+        <div class="chart-bar">
+          <div class="chart-label">${Utils.escapeHtml(data.name)}</div>
+          <div class="chart-bar-bg">
+            <div class="chart-bar-fill" style="width: ${percentage}%"></div>
+          </div>
+          <div class="chart-value">R$ ${data.cost.toFixed(2)}</div>
+        </div>
+      `;
+    });
+    html += '</div>';
+    
+    container.innerHTML = html;
+  }
+
+  calculateTotalCost(cards, state) {
+    const total = cards.reduce((sum, card) => {
+      const cost = this.parseCardCost(card.cost);
+      return sum + (parseFloat(cost.replace(/[R$\s]/g, '').replace(',', '.')) || 0);
+    }, 0);
+    return `R$ ${total.toFixed(2)}`;
+  }
+
+  calculateTotalDuration(cards) {
+    return cards.reduce((sum, card) => {
+      return sum + Utils.parseDurationToMin(card.duration);
+    }, 0);
+  }
+
+  parseCardCost(cost) {
+    if (!cost) return 'R$ 0,00';
+    if (cost.startsWith('R$')) return cost;
+    return `R$ ${parseFloat(cost).toFixed(2)}`;
+  }
+
+  calculateColumnData(state, filteredCards) {
+    return state.columns.map(column => {
+      const columnCards = filteredCards.filter(card => card.columnId === column.id);
+      const cost = columnCards.reduce((sum, card) => {
+        const cardCost = this.parseCardCost(card.cost);
+        return sum + (parseFloat(cardCost.replace(/[R$\s]/g, '').replace(',', '.')) || 0);
+      }, 0);
+      return { name: column.title, cost };
+    });
+  }
+
+  calculateLaneData(state, filteredCards) {
+    return state.lanes.map(lane => {
+      const laneCards = filteredCards.filter(card => card.laneId === lane.id);
+      const cost = laneCards.reduce((sum, card) => {
+        const cardCost = this.parseCardCost(card.cost);
+        return sum + (parseFloat(cardCost.replace(/[R$\s]/g, '').replace(',', '.')) || 0);
+      }, 0);
+      return { name: lane.title, cost };
+    });
+  }
+
+  calculateAssigneeData(state, filteredCards) {
+    const assigneeGroups = {};
+    filteredCards.forEach(card => {
+      const assignee = card.assignee || 'Não atribuído';
+      if (!assigneeGroups[assignee]) assigneeGroups[assignee] = [];
+      assigneeGroups[assignee].push(card);
+    });
+    
+    return Object.entries(assigneeGroups).map(([name, cards]) => {
+      const cost = cards.reduce((sum, card) => {
+        const cardCost = this.parseCardCost(card.cost);
+        return sum + (parseFloat(cardCost.replace(/[R$\s]/g, '').replace(',', '.')) || 0);
+      }, 0);
+      return { name, cost };
+    });
+  }
+
   openToolsManager(stateManager) {
     const modal = this.createToolsManagerModal(stateManager);
     this.openModal(modal);
@@ -493,10 +903,8 @@ export class ModalManager {
 
     const rowsContainer = modal.querySelector('#toolRows');
     
-    // Adicionar ferramentas existentes
     toolDict.forEach(tool => this.addToolRow(rowsContainer, tool));
     
-    // Event listeners
     modal.querySelector('#add').addEventListener('click', () => {
       this.addToolRow(rowsContainer);
     });
