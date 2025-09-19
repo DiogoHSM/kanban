@@ -134,21 +134,6 @@ export class FilterManager {
     return true;
   }
 
-  // Filtros avançados
-  filterByDateRange(startDate, endDate) {
-    // Implementação futura para filtrar por datas
-    // Necessário adicionar campos de data aos cards
-  }
-
-  filterByAssignee(assignee) {
-    this.updateSearch(assignee);
-  }
-
-  filterByPriority(priority) {
-    // Implementação futura para filtrar por prioridade
-    // Necessário adicionar campo de prioridade aos cards
-  }
-
   // Filtros salvos
   saveFilter(name, filterConfig) {
     try {
@@ -246,5 +231,4 @@ export class FilterManager {
     
     return false;
   }
-
-  
+}
