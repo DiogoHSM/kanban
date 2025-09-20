@@ -62,7 +62,19 @@ export class ImportExportManager {
       const validatedData = this.validateAndConvert(data);
       
       if (this.confirmImport()) {
+        // Debug: Log do que está sendo importado
+        console.log('Importando dados:', validatedData);
+        console.log('AssigneeDict no import:', validatedData.assigneeDict);
+        
         this.stateManager.setState(validatedData);
+        
+        // Verificar se foi salvo corretamente
+        setTimeout(() => {
+          const currentState = this.stateManager.getState();
+          console.log('Estado após import:', currentState);
+          console.log('AssigneeDict no estado:', currentState.assigneeDict);
+        }, 100);
+        
         alert('Importação realizada com sucesso!');
       }
     } catch (error) {
@@ -107,11 +119,14 @@ export class ImportExportManager {
   }
 
   isNewFormat(data) {
-    return data && 
+    const hasRequiredFields = data && 
            typeof data === 'object' && 
            Array.isArray(data.columns) && 
            Array.isArray(data.lanes) && 
            Array.isArray(data.cards);
+    
+    console.log('Verificando formato novo:', hasRequiredFields, data);
+    return hasRequiredFields;
   }
 
   isOldFormat(data) {
@@ -202,19 +217,32 @@ export class ImportExportManager {
   }
 
   validateAssigneeDict(assigneeDict) {
-    if (!Array.isArray(assigneeDict)) return [];
+    if (!Array.isArray(assigneeDict)) {
+      console.log('assigneeDict não é array:', assigneeDict);
+      return [];
+    }
     
-    return assigneeDict.filter(assignee => {
-      return assignee && 
+    console.log('Validando assigneeDict:', assigneeDict);
+    
+    const validated = assigneeDict.filter(assignee => {
+      const isValid = assignee && 
              typeof assignee === 'object' && 
              typeof assignee.name === 'string' && 
              assignee.name.length > 0 &&
-             typeof assignee.hourlyRate === 'number' &&
-             assignee.hourlyRate > 0;
+             (typeof assignee.hourlyRate === 'number' || typeof assignee.hourlyRate === 'string') &&
+             Number(assignee.hourlyRate) > 0;
+      
+      if (!isValid) {
+        console.log('Responsável inválido:', assignee);
+      }
+      return isValid;
     }).map(assignee => ({
       name: String(assignee.name),
       hourlyRate: Number(assignee.hourlyRate)
     }));
+    
+    console.log('AssigneeDict validado:', validated);
+    return validated;
   }
 
   validateFilter(filter) {
