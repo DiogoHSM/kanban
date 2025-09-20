@@ -128,6 +128,7 @@ export class ImportExportManager {
       cards: this.validateCards(data.cards),
       tagDict: this.validateTagDict(data.tagDict),
       toolDict: this.validateToolDict(data.toolDict),
+      assigneeDict: this.validateAssigneeDict(data.assigneeDict),
       filter: this.validateFilter(data.filter)
     };
 
@@ -200,6 +201,22 @@ export class ImportExportManager {
     }).map(tool => String(tool));
   }
 
+  validateAssigneeDict(assigneeDict) {
+    if (!Array.isArray(assigneeDict)) return [];
+    
+    return assigneeDict.filter(assignee => {
+      return assignee && 
+             typeof assignee === 'object' && 
+             typeof assignee.name === 'string' && 
+             assignee.name.length > 0 &&
+             typeof assignee.hourlyRate === 'number' &&
+             assignee.hourlyRate > 0;
+    }).map(assignee => ({
+      name: String(assignee.name),
+      hourlyRate: Number(assignee.hourlyRate)
+    }));
+  }
+
   validateFilter(filter) {
     if (!filter || typeof filter !== 'object') {
       return { tags: [], tools: [], laneIds: [], search: '' };
@@ -248,6 +265,7 @@ export class ImportExportManager {
       cards,
       tagDict: [],
       toolDict: [],
+      assigneeDict: [],
       filter: { tags: [], tools: [], laneIds: [], search: '' }
     };
   }
