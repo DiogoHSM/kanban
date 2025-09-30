@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Piano Trainer • Escalas, Acordes e Arpejos</title>
+  <style>
+    :root{
+      --bg:#0f1320; --panel:#171c2f; --panel-2:#0d1022; --text:#e5e9f0; --muted:#aab3c5; --accent:#7c9aff; --accent-2:#ff9a76;
+      --ok:#58d68d; --warn:#f5b041; --err:#e74c3c; --key:#fff; --black:#000;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%;margin:0;background:linear-gradient(180deg,var(--bg),#0b0e1a);color:var(--text);font:14px/1.4 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial}
+    h1{font-size:1.4rem;margin:0 0 .25rem 0}
+    .app{display:grid;grid-template-rows:auto auto 1fr auto;gap:.75rem;max-width:1200px;margin:0 auto;padding:16px}
+    .toolbar{display:grid;gap:.5rem;grid-template-columns:repeat(12,1fr)}
+    .card{background:linear-gradient(180deg,var(--panel),var(--panel-2));border:1px solid #1d2240;border-radius:14px;box-shadow:0 10px 30px rgba(0,0,0,.35);padding:12px}
+    label{font-size:.8rem;color:var(--muted);display:block;margin-bottom:6px}
+    select,input[type="number"],input[type="range"],button{width:100%;padding:8px;border-radius:10px;border:1px solid #2a2f52;background:#0e1330;color:var(--text)}
+    button{cursor:pointer;transition:transform .05s ease, background .2s}
+    button:hover{transform:translateY(-1px);background:#0f1640}
+    .btn-accent{background:linear-gradient(180deg,#2b3a86,#1f2a66);border-color:#3d4ca6}
+    .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+    .muted{color:var(--muted)}
+
+    /* Piano */
+    .piano-wrap{overflow-x:auto;padding:8px;height:260px}
+    .piano{position:relative;display:flex;height:220px;min-width:900px;padding:0 6px}
+    .white{position:relative;width:40px;height:100%;background:var(--key);border:1px solid #bbb;border-bottom:6px solid #ddd;border-radius:0 0 6px 6px;margin:0 2px;box-shadow:inset 0 -2px 0 #ececec}
+    .black{position:absolute;width:26px;height:60%;background:#111;border:1px solid #000;border-radius:0 0 4px 4px;left:28px;top:0;z-index:2;box-shadow:inset 0 -2px 0 #000}
+    .white.active{background:#dff4ff;border-bottom-color:#a5d7ff}
+    .black.active{background:#2a3a86}
+    .note-label{position:absolute;bottom:6px;left:0;right:0;text-align:center;font-size:.75rem;color:#333}
+    .marker{position:absolute;top:6px;left:50%;transform:translateX(-50%);width:26px;height:26px;border-radius:50%;background:var(--accent);color:#0a0c1a;font-weight:700;display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 2px #0a0c1a, 0 4px 10px rgba(0,0,0,.4)}
+    .marker.chord{background:var(--accent-2)}
+    .legend{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+    .legend > span{display:inline-flex;align-items:center;gap:6px;font-size:.85rem;color:var(--muted)}
+    .dot{width:12px;height:12px;border-radius:50%}
+
+    /* Footer */
+    .footer{display:flex;gap:.75rem;align-items:center;justify-content:space-between;flex-wrap:wrap}
+    .kbd{display:inline-block;background:#0a0e25;border:1px solid #1b2a62;border-radius:6px;padding:.15rem .4rem;color:#a9b4d9;font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,"Liberation Mono","Courier New",monospace}
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div>
+      <h1>🎹 Piano Trainer
+        <small class="muted">• Escalas, Acordes e Arpejos com áudio e visualização</small>
+      </h1>
+    </div>
+
+    <!-- Controles principais -->
+    <div class="toolbar card" role="region" aria-label="Controles">
+      <div>
+        <label for="root">Tonalidade</label>
+        <select id="root"></select>
+      </div>
+      <div>
+        <label for="scale">Escala</label>
+        <select id="scale"></select>
+      </div>
+      <div>
+        <label for="chord">Acorde</label>
+        <select id="chord"></select>
+      </div>
+      <div>
+        <label for="arp">Arpejo</label>
+        <select id="arp">
+          <option value="none">Desligado</option>
+          <option value="up">Subindo</option>
+          <option value="down">Descendo</option>
+          <option value="updown">Subir e descer</option>
+        </select>
+      </div>
+      <div>
+        <label for="octave">Oitava inicial</label>
+        <input id="octave" type="number" min="0" max="7" value="3"/>
+      </div>
+      <div>
+        <label for="tempo">Tempo (BPM)</label>
+        <input id="tempo" type="number" min="40" max="240" value="100"/>
+      </div>
+      <div>
+        <label for="wave">Timbre</label>
+        <select id="wave">
+          <option value="sine">Sine</option>
+          <option value="triangle">Triangle</option>
+          <option value="square">Square</option>
+          <option value="sawtooth">Saw</option>
+        </select>
+      </div>
+      <div>
+        <label for="adsr">ADSR (ms)</label>
+        <div class="grid-2">
+          <input id="attack" type="number" min="0" max="2000" value="10" title="Attack"/>
+          <input id="release" type="number" min="40" max="3000" value="300" title="Release"/>
+        </div>
+      </div>
+      <div>
+        <label>Reprodução</label>
+        <div class="grid-2">
+          <button id="play-scale" class="btn-accent">▶ Escala</button>
+          <button id="play-chord" class="btn-accent">▶ Acorde</button>
+        </div>
+      </div>
+      <div>
+        <label for="hold">Sustentar notas</label>
+        <select id="hold">
+          <option value="0">Não</option>
+          <option value="1">Sim</option>
+        </select>
+      </div>
+      <div>
+        <label for="metronome">Metrônomo</label>
+        <select id="metronome">
+          <option value="0">Off</option>
+          <option value="1">On</option>
+        </select>
+      </div>
+      <div>
+        <label for="showNoteNames">Rótulos</label>
+        <select id="showNoteNames">
+          <option value="on">Notas</option>
+          <option value="off">Sem rótulo</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Piano -->
+    <div class="card piano-wrap">
+      <div class="legend" style="margin: 0 0 8px 2px;">
+        <span><span class="dot" style="background:var(--accent)"></span> Graus da escala</span>
+        <span><span class="dot" style="background:var(--accent-2)"></span> Notas do acorde</span>
+        <span><span class="dot" style="background:#9effc7"></span> Tônica</span>
+      </div>
+      <div id="piano" class="piano" aria-label="Teclado do piano" role="group"></div>
+    </div>
+
+    <div class="card footer">
+      <div>
+        Dicas: clique nas teclas para ouvir. Teclas do teclado funcionam: <span class="kbd">A W S E D F T G Y H U J</span> etc. Use roda do mouse para rolar.
+      </div>
+      <div class="muted">Feito com Web Audio API</div>
+    </div>
+  </div>
+
+  <script>
+    // ---------- Utilidades musicais ----------
+    const NOTES = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
+    const ENHARMONICS = {"C#":"Db","D#":"Eb","F#":"Gb","G#":"Ab","A#":"Bb"};
+
+    const SCALES = {
+      "Maior (Jônio)": [0,2,4,5,7,9,11],
+      "Menor natural (Eólio)": [0,2,3,5,7,8,10],
+      "Menor harmônica": [0,2,3,5,7,8,11],
+      "Menor melódica": [0,2,3,5,7,9,11],
+      "Dórica": [0,2,3,5,7,9,10],
+      "Frígia": [0,1,3,5,7,8,10],
+      "Lídia":  [0,2,4,6,7,9,11],
+      "Mixolídia": [0,2,4,5,7,9,10],
+      "Lócria": [0,1,3,5,6,8,10],
+      "Pentatônica maior": [0,2,4,7,9],
+      "Pentatônica menor": [0,3,5,7,10],
+      "Blues": [0,3,5,6,7,10]
+    };
+
+    const CHORDS = {
+      "Maior": [0,4,7],
+      "Menor": [0,3,7],
+      "Diminuto": [0,3,6],
+      "Aumentado": [0,4,8],
+      "Sus2": [0,2,7],
+      "Sus4": [0,5,7],
+      "Maj7": [0,4,7,11],
+      "7": [0,4,7,10],
+      "m7": [0,3,7,10],
+      "mMaj7": [0,3,7,11],
+      "dim7": [0,3,6,9],
+      "m7b5 (meio-dim)": [0,3,6,10]
+    };
+
+    function midiToFreq(m){return 440 * Math.pow(2,(m-69)/12)}
+    function noteName(m){const n=NOTES[m%12];const o=Math.floor(m/12)-1;return n+o}
+
+    // ---------- Estado ----------
+    const state = {
+      root: 60, // C4
+      scaleName: Object.keys(SCALES)[0],
+      chordName: Object.keys(CHORDS)[0],
+      arp: "none",
+      octave: 3,
+      tempo: 100,
+      wave: "sine",
+      attack: 0.01,
+      release: 0.3,
+      hold: 0,
+      metronome: 0,
+      showNoteNames: 'on'
+    };
+
+    // ---------- Áudio ----------
+    let audioCtx=null; let masterGain=null; let metroTimer=null; let pressedKeys=new Map();
+    function ensureAudio(){
+      if(audioCtx) return;
+      audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+      masterGain = audioCtx.createGain();
+      masterGain.gain.value = 0.2; masterGain.connect(audioCtx.destination);
+    }
+
+    function playFreq(freq, dur=0.5){
+      ensureAudio();
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = state.wave; osc.frequency.value = freq;
+      osc.connect(gain); gain.connect(masterGain);
+      const now = audioCtx.currentTime;
+      const a = Math.max(0.001, state.attack/1000);
+      const r = Math.max(0.05, state.release/1000);
+      gain.gain.cancelScheduledValues(now);
+      gain.gain.setValueAtTime(0, now);
+      gain.gain.linearRampToValueAtTime(1, now + a);
+      const end = now + Math.max(dur, a+0.01);
+      if(!state.hold){
+        gain.gain.setTargetAtTime(0.0001, end, r);
+        osc.start(now); osc.stop(end + r*4);
+      } else {
+        // sustain until key up
+        gain.gain.setValueAtTime(1, end);
+        osc.start(now);
+      }
+      return {osc,gain};
+    }
+
+    function stopVoice(v){ if(!v) return; try{ v.gain.setTargetAtTime(0.0001, audioCtx.currentTime, Math.max(0.05,state.release/1000)); v.osc.stop(audioCtx.currentTime + 1);}catch(e){} }
+
+    function tick(){ if(!audioCtx) return; const o = audioCtx.createOscillator(); const g = audioCtx.createGain(); o.type='square'; o.frequency.value=1000; g.gain.value=.1; o.connect(g); g.connect(masterGain); const now=audioCtx.currentTime; o.start(now); o.stop(now+0.03) }
+
+    function startMetronome(){ stopMetronome(); if(!state.metronome) return; ensureAudio();
+      const intervalMs = 60000/Math.max(40,Math.min(240,state.tempo));
+      metroTimer = setInterval(tick, intervalMs);
+    }
+    function stopMetronome(){ if(metroTimer){ clearInterval(metroTimer); metroTimer=null; } }
+
+    // ---------- Piano UI ----------
+    const pianoEl = document.getElementById('piano');
+    const firstMidi = 36; // C2
+    const lastMidi  = 95; // B6
+
+    function isBlack(n){ return [1,3,6,8,10].includes(n%12) }
+
+    const keyElements = new Map();
+    function buildPiano(){
+      pianoEl.innerHTML='';
+      // Create white keys first to set layout
+      for(let m=firstMidi;m<=lastMidi;m++){
+        if(!isBlack(m)){
+          const w = document.createElement('div'); w.className='white'; w.dataset.midi=m;
+          const label = document.createElement('div'); label.className='note-label'; label.textContent = state.showNoteNames==='on'? noteName(m):''; w.appendChild(label);
+          pianoEl.appendChild(w); keyElements.set(m,w);
+        }
+      }
+      // Add black keys as absolutely positioned inside nearest white to the left
+      const whites = [...pianoEl.querySelectorAll('.white')];
+      whites.forEach((w,i)=>{
+        const m = parseInt(w.dataset.midi,10);
+        const next = m+1; if(isBlack(next) && next<=lastMidi){ const b=document.createElement('div'); b.className='black'; b.dataset.midi=next; w.appendChild(b); keyElements.set(next,b); }
+      });
+
+      pianoEl.addEventListener('mousedown', onMouse);
+      pianoEl.addEventListener('mouseup', onMouseUp);
+      pianoEl.addEventListener('mouseleave', onMouseUp);
+    }
+
+    function onMouse(e){ const key = e.target.closest('.white,.black'); if(!key) return; const midi = +key.dataset.midi; highlightKey(midi,true); const v = playFreq(midiToFreq(midi)); pressedKeys.set(midi,v); }
+    function onMouseUp(){ pressedKeys.forEach(stopVoice); pressedKeys.clear(); clearHighlights(); drawHighlights(); }
+
+    function highlightKey(midi, active){ const el = keyElements.get(midi); if(!el) return; el.classList.toggle('active', !!active); }
+
+    function clearHighlights(){ keyElements.forEach(el=>{ el.classList.remove('active'); const marker=el.querySelector('.marker'); if(marker) marker.remove(); }); }
+
+    function addMarker(midi, text, cls=''){ const el = keyElements.get(midi); if(!el) return; const dot = document.createElement('div'); dot.className='marker '+cls; dot.textContent=text; el.appendChild(dot); }
+
+    // ---------- Lógica de escalas/acordes ----------
+    function buildSelects(){
+      const rootSel = document.getElementById('root');
+      const scaleSel = document.getElementById('scale');
+      const chordSel = document.getElementById('chord');
+
+      // Raízes com sustenidos e bemóis amigáveis
+      const roots=["C","C#","Db","D","D#","Eb","E","F","F#","Gb","G","G#","Ab","A","A#","Bb","B"];
+      roots.forEach(r=>{ const o=document.createElement('option'); o.value=r; o.textContent=r; rootSel.appendChild(o); });
+
+      Object.keys(SCALES).forEach(n=>{ const o=document.createElement('option'); o.value=n; o.textContent=n; scaleSel.appendChild(o);});
+      Object.keys(CHORDS).forEach(n=>{ const o=document.createElement('option'); o.value=n; o.textContent=n; chordSel.appendChild(o);});
+
+      // Defaults
+      rootSel.value='C'; scaleSel.value=state.scaleName; chordSel.value=state.chordName;
+
+      // Listeners
+      rootSel.addEventListener('change', ()=>{ state.root = nameToMidi(rootSel.value, state.octave); drawHighlights(); saveState(); });
+      scaleSel.addEventListener('change', ()=>{ state.scaleName=scaleSel.value; drawHighlights(); saveState(); });
+      chordSel.addEventListener('change', ()=>{ state.chordName=chordSel.value; drawHighlights(); saveState(); });
+    }
+
+    function nameToMidi(name, octave){
+      const n = name.replace('Db','C#').replace('Eb','D#').replace('Gb','F#').replace('Ab','G#').replace('Bb','A#');
+      const base = NOTES.indexOf(n);
+      return 12*(octave+1) + base;
+    }
+
+    function currentRootMidi(){ return nameToMidi(document.getElementById('root').value, parseInt(document.getElementById('octave').value,10)); }
+
+    function buildScale(midRoot, pattern){ return pattern.map(semi=> midRoot + semi); }
+    function buildChord(midRoot, pattern){ return pattern.map(semi=> midRoot + semi); }
+
+    function drawHighlights(){
+      clearHighlights();
+      const midRoot = currentRootMidi();
+      const scale = buildScale(midRoot, SCALES[state.scaleName]);
+      const chord = buildChord(midRoot, CHORDS[state.chordName]);
+
+      // Mark scale degrees
+      scale.forEach((m,i)=>{ const deg=(i+1); addMarker(m, deg===1? 'T' : String(deg)); highlightKey(m,true); });
+      // Mark chord notes
+      chord.forEach((m)=>{ addMarker(m, '●', 'chord'); highlightKey(m,true); });
+      // Emphasize tonic
+      addMarker(midRoot,'★');
+    }
+
+    // ---------- Reprodução de escala/acorde/arpejo ----------
+    async function playScale(){ ensureAudio(); const midRoot=currentRootMidi(); const patt=SCALES[state.scaleName]; const scale=buildScale(midRoot,patt);
+      const stepMs = 60000/Math.max(40,Math.min(240,state.tempo));
+      for(let i=0;i<scale.length;i++){
+        const m=scale[i]; const v=playFreq(midiToFreq(m), stepMs/1000*.9); highlightKey(m,true); await wait(stepMs); if(!state.hold){ stopVoice(v); highlightKey(m,false);} }
+      if(state.arp!=='none'){ await playArpFrom(chordFromUI()); }
+    }
+
+    function chordFromUI(){ const midRoot=currentRootMidi(); return buildChord(midRoot, CHORDS[state.chordName]); }
+
+    async function playChord(){ ensureAudio(); const chord=chordFromUI(); const dur=0.8; const voices=[]; chord.forEach(m=>{highlightKey(m,true); voices.push(playFreq(midiToFreq(m), dur));}); await wait(dur*1000); if(!state.hold){ voices.forEach(stopVoice); chord.forEach(m=>highlightKey(m,false)); } }
+
+    async function playArpFrom(chord){ const order = (mode)=>{
+        if(mode==='up') return [...chord];
+        if(mode==='down') return [...chord].reverse();
+        if(mode==='updown'){ const up=[...chord]; const down=[...chord].reverse().slice(1,-1); return up.concat(down);} return [];
+      };
+      const seq = order(state.arp); const stepMs = 60000/Math.max(40,Math.min(240,state.tempo));
+      for(const m of seq){ const v=playFreq(midiToFreq(m), stepMs/1000*.9); highlightKey(m,true); await wait(stepMs); if(!state.hold){ stopVoice(v); highlightKey(m,false);} }
+    }
+
+    function wait(ms){ return new Promise(res=>setTimeout(res,ms)); }
+
+    // ---------- Controles, estado e atalhos ----------
+    function hookControls(){
+      const ids=["octave","tempo","wave","attack","release","arp","hold","metronome","showNoteNames"]; ids.forEach(id=>{
+        document.getElementById(id).addEventListener('change', (e)=>{
+          const v = (id==='attack'||id==='release')? Number(e.target.value): e.target.value;
+          state[id==='attack'||id==='release'? id : id] = (id==='octave'||id==='tempo')? Number(e.target.value): e.target.value;
+          if(id==='octave'){ state.octave=Number(e.target.value); document.getElementById('root').dispatchEvent(new Event('change')); }
+          if(id==='metronome'){ state.metronome=Number(e.target.value); startMetronome(); }
+          if(id==='hold'){ state.hold=Number(e.target.value); if(!state.hold){ onMouseUp(); } }
+          if(id==='showNoteNames'){ buildPiano(); drawHighlights(); }
+          saveState();
+        });
+      });
+      document.getElementById('play-scale').addEventListener('click',()=>{ playScale(); });
+      document.getElementById('play-chord').addEventListener('click',()=>{ playChord(); });
+    }
+
+    function saveState(){ try{ localStorage.setItem('piano-trainer', JSON.stringify(state)); }catch(e){} }
+    function loadState(){ try{ const s=JSON.parse(localStorage.getItem('piano-trainer')); if(s){ Object.assign(state,s); } }catch(e){} }
+
+    // Keyboard mapping for quick play (starting around middle row)
+    const KEYMAP = [
+      ['a',0],['w',1],['s',2],['e',3],['d',4],['f',5],['t',6],['g',7],['y',8],['h',9],['u',10],['j',11],['k',12],['o',13],['l',14],['p',15],[';:',16] // etc.
+    ];
+    const pressed = new Set();
+    window.addEventListener('keydown',(e)=>{
+      if(e.repeat) return; const pair = KEYMAP.find(k=>k[0].includes(e.key)); if(!pair) return; ensureAudio(); const mid = currentRootMidi() + pair[1]; const v=playFreq(midiToFreq(mid)); pressedKeys.set(mid,v); highlightKey(mid,true); pressed.add(e.key);
+    });
+    window.addEventListener('keyup',(e)=>{
+      if(!pressed.has(e.key)) return; const pair = KEYMAP.find(k=>k[0].includes(e.key)); if(!pair) return; const mid = currentRootMidi() + pair[1]; const v=pressedKeys.get(mid); stopVoice(v); pressedKeys.delete(mid); highlightKey(mid,false); pressed.delete(e.key);
+    });
+
+    // ---------- Init ----------
+    loadState();
+    buildPiano();
+    buildSelects();
+    hookControls();
+    // Sync inputs with loaded state
+    document.getElementById('octave').value = state.octave;
+    document.getElementById('tempo').value = state.tempo;
+    document.getElementById('wave').value = state.wave;
+    document.getElementById('attack').value = Math.round(state.attack*1000)||10;
+    document.getElementById('release').value = Math.round(state.release*1000)||300;
+    document.getElementById('arp').value = state.arp;
+    document.getElementById('hold').value = state.hold;
+    document.getElementById('metronome').value = state.metronome;
+    document.getElementById('showNoteNames').value = state.showNoteNames||'on';
+
+    // Set initial root midi and draw
+    document.getElementById('root').dispatchEvent(new Event('change'));
+    drawHighlights();
+    startMetronome();
+  </script>
+</body>
+</html>
